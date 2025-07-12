@@ -1,0 +1,105 @@
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const path = require('path');
+const http = require('http');
+const connectDB = require('./config/database');
+const rateLimiter = require('./src/middleware/rateLimiter');
+const { handleUploadError } = require('./src/middleware/upload');
+const { initializeSocket } = require('./src/utils/notifications');
+
+dotenv.config();
+
+const app = express();
+const server = http.createServer(app);
+
+connectDB();
+
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(rateLimiter());
+
+app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/students', require('./src/routes/students'));
+app.use('/api/classes', require('./src/routes/classes'));
+app.use('/api/courses', require('./src/routes/courses'));
+app.use('/api/assignments', require('./src/routes/assignments'));
+app.use('/api/learning', require('./src/routes/learning'));
+app.use('/api/analytics', require('./src/routes/analytics'));
+
+app.use(handleUploadError);
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'index.html'));
+});
+
+app.get('/api', (req, res) => {
+  res.json({
+    success: true,
+    message: '学习平台管理系统 API',
+    version: '1.0.0',
+    modules: [
+      '校务与学籍管理 (Administration & Student Information)',
+      '教学过程管理 (Teaching & Instruction)',
+      '学生学习与互动 (Learning & Interaction)',
+      '评价与分析 (Assessment & Analytics)'
+    ]
+  });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: '服务器内部错误',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: '请求的资源不存在'
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+
+initializeSocket(server);
+
+server.listen(PORT, HOST, () => {
+  console.log(`服务器运行在端口 ${PORT}`);
+  console.log(`绑定地址: ${HOST}:${PORT}`);
+  console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
+  console.log('实时通知系统已启动');
+  
+  // Get local IP for Windows access
+  const os = require('os');
+  const networkInterfaces = os.networkInterfaces();
+  const localIPs = [];
+  
+  Object.keys(networkInterfaces).forEach(interfaceName => {
+    networkInterfaces[interfaceName].forEach(interface => {
+      if (interface.family === 'IPv4' && !interface.internal) {
+        localIPs.push(interface.address);
+      }
+    });
+  });
+  
+  console.log('\n🌐 访问地址:');
+  console.log(`   http://localhost:${PORT}`);
+  console.log(`   http://127.0.0.1:${PORT}`);
+  if (localIPs.length > 0) {
+    localIPs.forEach(ip => {
+      console.log(`   http://${ip}:${PORT}`);
+    });
+  }
+  console.log('\n🔑 登录凭据:');
+  console.log('   管理员: principal@school.edu / admin123');
+  console.log('   教师: wang@school.edu / admin123');
+  console.log('   学生: 20230001 / 20230001');
+  console.log('\n💡 如果 Windows 浏览器无法连接，运行: ./fix-windows-access.sh\n');
+});
