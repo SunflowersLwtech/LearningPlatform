@@ -90,7 +90,43 @@ const staffSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  }
+  },
+  avatar: {
+    type: String,
+    default: null
+  },
+  lastLogin: {
+    type: Date,
+    default: null
+  },
+  preferredLanguage: {
+    type: String,
+    enum: ['zh-CN', 'en-US'],
+    default: 'zh-CN'
+  },
+  roleHistory: [{
+    oldRole: {
+      type: String,
+      required: true
+    },
+    newRole: {
+      type: String,
+      required: true
+    },
+    changedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Staff',
+      required: true
+    },
+    changeDate: {
+      type: Date,
+      default: Date.now
+    },
+    reason: {
+      type: String,
+      default: '管理员操作'
+    }
+  }]
 }, {
   timestamps: true
 });

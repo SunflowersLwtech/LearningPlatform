@@ -90,6 +90,56 @@ const gradeSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// 自动计算GPA的中间件
+gradeSchema.pre('save', function(next) {
+  // 根据百分比计算GPA (4.0制)
+  if (this.percentage !== undefined) {
+    if (this.percentage >= 97) this.gpa = 4.0;
+    else if (this.percentage >= 93) this.gpa = 3.7;
+    else if (this.percentage >= 90) this.gpa = 3.3;
+    else if (this.percentage >= 87) this.gpa = 3.0;
+    else if (this.percentage >= 83) this.gpa = 2.7;
+    else if (this.percentage >= 80) this.gpa = 2.3;
+    else if (this.percentage >= 77) this.gpa = 2.0;
+    else if (this.percentage >= 73) this.gpa = 1.7;
+    else if (this.percentage >= 70) this.gpa = 1.3;
+    else if (this.percentage >= 67) this.gpa = 1.0;
+    else if (this.percentage >= 60) this.gpa = 0.7;
+    else this.gpa = 0.0;
+  }
+  next();
+});
+
+// 静态方法：计算学生的累计GPA
+gradeSchema.statics.calculateStudentGPA = async function(studentId, academicYear, semester) {
+  const filter = { student: studentId };
+  if (academicYear) filter.academicYear = academicYear;
+  if (semester) filter.semester = semester;
+  
+  const grades = await this.find(filter).populate('course', 'credits');
+  
+  if (grades.length === 0) return { gpa: 0, totalCredits: 0 };
+  
+  let totalGradePoints = 0;
+  let totalCredits = 0;
+  
+  grades.forEach(grade => {
+    const credits = grade.course?.credits || 1;
+    const gpa = grade.gpa || 0;
+    
+    totalGradePoints += gpa * credits;
+    totalCredits += credits;
+  });
+  
+  const cumulativeGPA = totalCredits > 0 ? totalGradePoints / totalCredits : 0;
+  
+  return {
+    gpa: Math.round(cumulativeGPA * 100) / 100,
+    totalCredits,
+    totalGradePoints
+  };
+};
+
 gradeSchema.index({ student: 1, course: 1, academicYear: 1 });
 gradeSchema.index({ course: 1, type: 1 });
 gradeSchema.index({ gradedAt: -1 });

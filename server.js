@@ -22,6 +22,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(rateLimiter());
 
 app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/permissions', require('./src/routes/permissions'));
+app.use('/api/data-maintenance', require('./src/routes/dataMaintenance'));
 app.use('/api/students', require('./src/routes/students'));
 app.use('/api/classes', require('./src/routes/classes'));
 app.use('/api/courses', require('./src/routes/courses'));
@@ -49,21 +51,17 @@ app.get('/api', (req, res) => {
   });
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: '服务器内部错误',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
-
+// 404处理中间件（在所有路由之后）
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: '请求的资源不存在'
   });
 });
+
+// 添加全局错误处理（必须在最后）
+const { globalErrorHandler } = require('./src/utils/errorHandler');
+app.use(globalErrorHandler);
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';

@@ -2,22 +2,218 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Staff = require('../models/Staff');
 const Student = require('../models/Student');
+const { createError, sendSuccessResponse, sendErrorResponse } = require('../utils/errorHandler');
 
-const generateToken = (id, userType) => {
-  return jwt.sign({ id, userType }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '30d'
+const generateToken = (id, userType, isRefresh = false) => {
+  const expiresIn = isRefresh 
+    ? process.env.JWT_REFRESH_EXPIRE || '7d'
+    : process.env.JWT_EXPIRE || '2h';
+    
+  return jwt.sign({ id, userType, isRefresh }, process.env.JWT_SECRET, {
+    expiresIn
   });
+};
+
+const generateTokenPair = (id, userType) => {
+  const accessToken = generateToken(id, userType, false);
+  const refreshToken = generateToken(id, userType, true);
+  return { accessToken, refreshToken };
+};
+
+// 获取可用角色列表
+exports.getAvailableRoles = async (req, res) => {
+  try {
+    const roles = {
+      staff: [
+        { value: 'admin', label: '系统管理员', description: '拥有系统最高权限' },
+        { value: 'principal', label: '校长', description: '学校最高管理者' },
+        { value: 'vice_principal', label: '副校长', description: '协助校长管理学校' },
+        { value: 'director', label: '主任', description: '部门负责人' },
+        { value: 'head_teacher', label: '班主任', description: '负责班级管理' },
+        { value: 'teacher', label: '教师', description: '负责教学工作' }
+      ],
+      student: [
+        { value: 'student', label: '学生', description: '在校学习的学生' }
+      ]
+    };
+    
+    sendSuccessResponse(res, roles, '获取角色列表成功');
+  } catch (error) {
+    sendErrorResponse(res, createError.internal('获取角色列表失败'));
+  }
+};
+
+// 验证登录凭据（第一步：验证身份）
+exports.validateCredentials = async (req, res) => {
+  try {
+    const { identifier, password } = req.body;
+    
+    if (!identifier || !password) {
+      return sendErrorResponse(res, createError.badRequest('用户名和密码不能为空'));
+    }
+    
+    // 检查是否为教职工
+    const staff = await Staff.findOne({
+      $or: [
+        { email: identifier.toLowerCase() },
+        { staffId: identifier }
+      ]
+    }).select('+password');
+    
+    if (staff && await bcrypt.compare(password, staff.password)) {
+      if (!staff.isActive) {
+        return sendErrorResponse(res, createError.forbidden('账号已被停用'));
+      }
+      
+      return sendSuccessResponse(res, {
+        userType: 'staff',
+        user: {
+          id: staff._id,
+          name: staff.name,
+          identifier: staff.staffId,
+          email: staff.email,
+          role: staff.role,
+          avatar: staff.avatar
+        },
+        availableRoles: [staff.role]
+      }, '身份验证成功');
+    }
+    
+    // 检查是否为学生
+    const student = await Student.findOne({ studentId: identifier }).select('+password');
+    
+    if (student && await bcrypt.compare(password, student.password)) {
+      if (student.enrollmentStatus !== 'enrolled') {
+        return sendErrorResponse(res, createError.forbidden('学生账号状态异常'));
+      }
+      
+      return sendSuccessResponse(res, {
+        userType: 'student',
+        user: {
+          id: student._id,
+          name: student.name,
+          identifier: student.studentId,
+          grade: student.grade,
+          avatar: student.avatar
+        },
+        availableRoles: ['student']
+      }, '身份验证成功');
+    }
+    
+    sendErrorResponse(res, createError.unauthorized('用户名或密码错误'));
+  } catch (error) {
+    sendErrorResponse(res, createError.internal('身份验证失败'));
+  }
+};
+
+// 上传头像
+exports.uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return sendErrorResponse(res, createError.badRequest('请选择头像文件'));
+    }
+    
+    const userId = req.user.id;
+    const userType = req.userType;
+    
+    // 构建头像URL
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    
+    // 更新用户头像
+    let user;
+    if (userType === 'staff') {
+      user = await Staff.findByIdAndUpdate(
+        userId,
+        { avatar: avatarUrl },
+        { new: true }
+      ).select('-password');
+    } else {
+      user = await Student.findByIdAndUpdate(
+        userId,
+        { avatar: avatarUrl },
+        { new: true }
+      );
+    }
+    
+    if (!user) {
+      return sendErrorResponse(res, createError.notFound('用户不存在'));
+    }
+    
+    sendSuccessResponse(res, {
+      avatar: avatarUrl,
+      user: {
+        id: user._id,
+        name: user.name,
+        avatar: user.avatar
+      }
+    }, '头像上传成功');
+  } catch (error) {
+    sendErrorResponse(res, createError.internal('头像上传失败'));
+  }
+};
+
+// 删除头像
+exports.deleteAvatar = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userType = req.userType;
+    
+    // 获取当前用户信息
+    let user;
+    if (userType === 'staff') {
+      user = await Staff.findById(userId);
+    } else {
+      user = await Student.findById(userId);
+    }
+    
+    if (!user) {
+      return sendErrorResponse(res, createError.notFound('用户不存在'));
+    }
+    
+    // 删除服务器上的头像文件
+    if (user.avatar) {
+      const fs = require('fs');
+      const path = require('path');
+      const avatarPath = path.join(process.cwd(), user.avatar);
+      
+      if (fs.existsSync(avatarPath)) {
+        fs.unlinkSync(avatarPath);
+      }
+    }
+    
+    // 更新数据库
+    if (userType === 'staff') {
+      user = await Staff.findByIdAndUpdate(
+        userId,
+        { avatar: null },
+        { new: true }
+      ).select('-password');
+    } else {
+      user = await Student.findByIdAndUpdate(
+        userId,
+        { avatar: null },
+        { new: true }
+      );
+    }
+    
+    sendSuccessResponse(res, {
+      user: {
+        id: user._id,
+        name: user.name,
+        avatar: user.avatar
+      }
+    }, '头像删除成功');
+  } catch (error) {
+    sendErrorResponse(res, createError.internal('头像删除失败'));
+  }
 };
 
 exports.login = async (req, res) => {
   try {
-    const { identifier, password, userType } = req.body;
+    const { identifier, password, userType, selectedRole } = req.body;
     
     if (!identifier || !password || !userType) {
-      return res.status(400).json({
-        success: false,
-        message: '请提供用户名/学号、密码和用户类型'
-      });
+      return sendErrorResponse(res, createError.badRequest('请提供用户名/学号、密码和用户类型'));
     }
     
     let user;
@@ -27,60 +223,56 @@ exports.login = async (req, res) => {
       identifierField = identifier.includes('@') ? 'email' : 'staffId';
       user = await Staff.findOne({ [identifierField]: identifier }).select('+password');
     } else if (userType === 'student') {
-      user = await Student.findOne({ studentId: identifier });
+      user = await Student.findOne({ studentId: identifier }).select('+password');
       if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: '学生账号不存在或密码错误'
-        });
+        return sendErrorResponse(res, createError.unauthorized('学生账号不存在或密码错误'));
       }
     } else {
-      return res.status(400).json({
-        success: false,
-        message: '无效的用户类型'
-      });
+      return sendErrorResponse(res, createError.badRequest('无效的用户类型'));
     }
     
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: '账号不存在或密码错误'
-      });
+      return sendErrorResponse(res, createError.unauthorized('账号不存在或密码错误'));
     }
     
     let isPasswordValid = false;
     if (userType === 'staff') {
       isPasswordValid = await bcrypt.compare(password, user.password);
     } else {
-      isPasswordValid = password === user.studentId;
+      isPasswordValid = await bcrypt.compare(password, user.password);
     }
     
     if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: '账号不存在或密码错误'
-      });
+      return sendErrorResponse(res, createError.unauthorized('账号不存在或密码错误'));
     }
     
     if (userType === 'staff' && !user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: '账号已被停用'
-      });
+      return sendErrorResponse(res, createError.forbidden('账号已被停用'));
     }
     
-    const token = generateToken(user._id, userType);
+    if (userType === 'student' && user.enrollmentStatus !== 'enrolled') {
+      return sendErrorResponse(res, createError.forbidden('学生账号状态异常'));
+    }
+    
+    // 更新最后登录时间
+    user.lastLogin = new Date();
+    await user.save();
+    
+    const { accessToken, refreshToken } = generateTokenPair(user._id, userType);
     
     user.password = undefined;
     
-    res.json({
-      success: true,
-      message: '登录成功',
-      token,
+    const responseData = {
+      accessToken,
+      refreshToken,
       user: {
         id: user._id,
         name: user.name,
+        userType,
         role: userType === 'staff' ? user.role : 'student',
+        avatar: user.avatar,
+        lastLogin: user.lastLogin,
+        preferredLanguage: user.preferredLanguage,
         ...(userType === 'staff' ? {
           staffId: user.staffId,
           email: user.email,
@@ -89,10 +281,13 @@ exports.login = async (req, res) => {
         } : {
           studentId: user.studentId,
           grade: user.grade,
-          class: user.class
+          class: user.class,
+          enrollmentStatus: user.enrollmentStatus
         })
       }
-    });
+    };
+    
+    sendSuccessResponse(res, responseData, '登录成功');
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -134,12 +329,13 @@ exports.register = async (req, res) => {
       
       await staff.save();
       
-      const token = generateToken(staff._id, 'staff');
+      const { accessToken, refreshToken } = generateTokenPair(staff._id, 'staff');
       
       res.status(201).json({
         success: true,
         message: '教职工注册成功',
-        token,
+        accessToken,
+        refreshToken,
         user: {
           id: staff._id,
           name: staff.name,

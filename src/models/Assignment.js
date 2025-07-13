@@ -119,6 +119,36 @@ const assignmentSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// 自动计算总分的中间件
+assignmentSchema.pre('save', function(next) {
+  if (this.questions && this.questions.length > 0) {
+    this.totalPoints = this.questions.reduce((total, question) => {
+      return total + (question.points || 0);
+    }, 0);
+  }
+  next();
+});
+
+// 验证总分的中间件
+assignmentSchema.pre('save', function(next) {
+  if (this.totalPoints < 0) {
+    const error = new Error('作业总分不能为负数');
+    error.name = 'ValidationError';
+    return next(error);
+  }
+  
+  if (this.questions && this.questions.length > 0) {
+    const hasInvalidPoints = this.questions.some(q => q.points < 0);
+    if (hasInvalidPoints) {
+      const error = new Error('题目分数不能为负数');
+      error.name = 'ValidationError';
+      return next(error);
+    }
+  }
+  
+  next();
+});
+
 assignmentSchema.index({ course: 1, dueDate: -1 });
 assignmentSchema.index({ teacher: 1, createdAt: -1 });
 

@@ -58,9 +58,25 @@ exports.generateStudentReport = async (req, res) => {
       subjectGrades[subject].push(grade);
     });
     
+    // 使用加权平均计算学科成绩
+    const calculateWeightedAverage = (gradeList) => {
+      if (gradeList.length === 0) return 0;
+      
+      let totalWeightedScore = 0;
+      let totalWeight = 0;
+      
+      gradeList.forEach(grade => {
+        const weight = grade.weight || 1;
+        totalWeightedScore += grade.percentage * weight;
+        totalWeight += weight;
+      });
+      
+      return totalWeight > 0 ? totalWeightedScore / totalWeight : 0;
+    };
+    
     const subjectPerformance = Object.keys(subjectGrades).map(subject => {
       const subjectScores = subjectGrades[subject];
-      const averageScore = subjectScores.reduce((sum, grade) => sum + grade.percentage, 0) / subjectScores.length;
+      const averageScore = calculateWeightedAverage(subjectScores);
       
       return {
         subject,
@@ -70,9 +86,7 @@ exports.generateStudentReport = async (req, res) => {
       };
     });
     
-    const overallAverage = grades.length > 0 
-      ? grades.reduce((sum, grade) => sum + grade.percentage, 0) / grades.length 
-      : 0;
+    const overallAverage = calculateWeightedAverage(grades);
     
     const gradeDistribution = {
       A: grades.filter(g => g.percentage >= 90).length,
@@ -169,9 +183,23 @@ exports.generateClassReport = async (req, res) => {
       class: classId
     });
     
-    const classAverage = grades.length > 0 
-      ? grades.reduce((sum, grade) => sum + grade.percentage, 0) / grades.length 
-      : 0;
+    // 实现加权平均计算
+    const calculateWeightedAverage = (gradeList) => {
+      if (gradeList.length === 0) return 0;
+      
+      let totalWeightedScore = 0;
+      let totalWeight = 0;
+      
+      gradeList.forEach(grade => {
+        const weight = grade.weight || 1;
+        totalWeightedScore += grade.percentage * weight;
+        totalWeight += weight;
+      });
+      
+      return totalWeight > 0 ? totalWeightedScore / totalWeight : 0;
+    };
+    
+    const classAverage = calculateWeightedAverage(grades);
     
     const subjectAverages = {};
     grades.forEach(grade => {
@@ -184,13 +212,16 @@ exports.generateClassReport = async (req, res) => {
     
     const subjectPerformance = Object.keys(subjectAverages).map(subject => {
       const scores = subjectAverages[subject];
-      const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+      
+      // 根据成绩类型计算加权平均
+      const subjectGrades = grades.filter(g => g.course.subject === subject);
+      const weightedAverage = calculateWeightedAverage(subjectGrades);
       
       return {
         subject,
-        average: Math.round(average * 100) / 100,
+        average: Math.round(weightedAverage * 100) / 100,
         studentsCount: scores.length,
-        passRate: (scores.filter(score => score >= 60).length / scores.length) * 100
+        passRate: Math.round((scores.filter(score => score >= 60).length / scores.length) * 100 * 100) / 100
       };
     });
     
@@ -421,17 +452,20 @@ exports.getStats = async (req, res) => {
       ? Math.round((presentCount / attendanceRecords.length) * 100) 
       : 0;
     
-    // 年级分布
+    // 年级分布 - 添加结果数量限制
     const gradeDistribution = await Student.aggregate([
       { $match: { enrollmentStatus: 'enrolled' } },
       { $group: { _id: '$grade', count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      { $sort: { _id: 1 } },
+      { $limit: 20 } // 限制最多20个年级
     ]);
     
-    // 成绩分布统计
+    // 成绩分布统计 - 限制数据量防止内存溢出
     const recentGrades = await Grade.find({
       createdAt: { $gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } // 最近3个月
-    });
+    })
+    .limit(10000) // 限制最多10000条记录
+    .select('percentage type'); // 只选择需要的字段
     
     const gradeStats = {
       excellent: recentGrades.filter(g => g.percentage >= 90).length,
@@ -460,7 +494,8 @@ exports.getStats = async (req, res) => {
           count: { $sum: 1 }
         }
       },
-      { $sort: { '_id.year': 1, '_id.month': 1 } }
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+      { $limit: 12 } // 最多12个月的数据
     ]);
     
     // 格式化提交趋势数据
@@ -475,8 +510,10 @@ exports.getStats = async (req, res) => {
       submissionData.data.push(item.count);
     });
     
-    // 课程活跃度（基于讨论和作业提交）
-    const courses = await Course.find({ isActive: true }).select('name subject');
+    // 课程活跃度（基于讨论和作业提交） - 限制课程数量
+    const courses = await Course.find({ isActive: true })
+      .select('name subject')
+      .limit(50); // 最多50门课程
     const courseActivity = await Promise.all(
       courses.map(async (course) => {
         // 计算该课程的作业提交数

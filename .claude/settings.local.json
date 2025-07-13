@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run lint)",
+      "Bash(npm test)",
+      "Bash(node:*)",
+      "Bash(timeout 5s npm start)",
+      "Bash(find:*)",
+      "Bash(chmod:*)",
+      "Bash(./start-dev.sh:*)",
+      "Bash(npm start)",
+      "Bash(curl:*)",
+      "Bash(npm install:*)",
+      "Bash(echo)"
+    ],
+    "deny": []
+  }
+}

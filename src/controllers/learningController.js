@@ -3,6 +3,7 @@ const Submission = require('../models/Submission');
 const Discussion = require('../models/Discussion');
 const Resource = require('../models/Resource');
 const { uploadMiddleware } = require('../middleware/upload');
+const mongoose = require('mongoose');
 
 exports.getStudentDashboard = async (req, res) => {
   try {
@@ -103,13 +104,17 @@ exports.getAssignments = async (req, res) => {
 };
 
 exports.submitAssignment = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
     const { assignmentId } = req.params;
     const studentId = req.user.id;
     const { answers, textSubmission, attachments } = req.body;
     
-    const assignment = await Assignment.findById(assignmentId);
+    const assignment = await Assignment.findById(assignmentId).session(session);
     if (!assignment) {
+      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: '作业不存在'
@@ -118,6 +123,7 @@ exports.submitAssignment = async (req, res) => {
     
     if (new Date() > assignment.dueDate) {
       if (!assignment.lateSubmission.allowed) {
+        await session.abortTransaction();
         return res.status(400).json({
           success: false,
           message: '作业已过期，不允许提交'
@@ -128,9 +134,10 @@ exports.submitAssignment = async (req, res) => {
     let submission = await Submission.findOne({
       assignment: assignmentId,
       student: studentId
-    });
+    }).session(session);
     
     if (submission && submission.attemptNumber >= assignment.attempts) {
+      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         message: '已达到最大提交次数'
@@ -138,15 +145,42 @@ exports.submitAssignment = async (req, res) => {
     }
     
     const isLate = new Date() > assignment.dueDate;
+    const submittedAt = new Date();
     
     if (submission) {
-      submission.attemptNumber += 1;
-      submission.answers = answers;
-      submission.textSubmission = textSubmission;
-      submission.attachments = attachments;
-      submission.submittedAt = new Date();
-      submission.isLate = isLate;
-      submission.status = 'submitted';
+      const updatedSubmission = await Submission.findOneAndUpdate(
+        { 
+          assignment: assignmentId,
+          student: studentId,
+          attemptNumber: { $lt: assignment.attempts }
+        },
+        {
+          $inc: { attemptNumber: 1 },
+          $set: {
+            answers,
+            textSubmission,
+            attachments,
+            submittedAt,
+            isLate,
+            status: 'submitted'
+          }
+        },
+        { 
+          new: true,
+          session,
+          runValidators: true
+        }
+      );
+      
+      if (!updatedSubmission) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: '已达到最大提交次数'
+        });
+      }
+      
+      submission = updatedSubmission;
     } else {
       submission = new Submission({
         assignment: assignmentId,
@@ -155,11 +189,15 @@ exports.submitAssignment = async (req, res) => {
         textSubmission,
         attachments,
         isLate,
-        status: 'submitted'
+        submittedAt,
+        status: 'submitted',
+        attemptNumber: 1
       });
+      
+      await submission.save({ session });
     }
     
-    await submission.save();
+    await session.commitTransaction();
     
     res.json({
       success: true,
@@ -167,11 +205,14 @@ exports.submitAssignment = async (req, res) => {
       data: submission
     });
   } catch (error) {
+    await session.abortTransaction();
     res.status(400).json({
       success: false,
       message: '提交作业失败',
       error: error.message
     });
+  } finally {
+    session.endSession();
   }
 };
 
@@ -234,7 +275,31 @@ exports.downloadResource = async (req, res) => {
     const fs = require('fs');
     
     if (resource.fileInfo && resource.fileInfo.filePath) {
-      const filePath = path.resolve(resource.fileInfo.filePath);
+      const uploadsDir = path.resolve('./uploads');
+      const requestedPath = path.resolve(uploadsDir, resource.fileInfo.filePath);
+      
+      // 强化路径遍历攻击防护
+      const normalizedUploadsDir = path.normalize(uploadsDir + path.sep);
+      const normalizedRequestedPath = path.normalize(requestedPath + path.sep);
+      
+      if (!normalizedRequestedPath.startsWith(normalizedUploadsDir)) {
+        console.warn(`路径遍历攻击尝试: ${resource.fileInfo.filePath} -> ${requestedPath}`);
+        return res.status(403).json({
+          success: false,
+          message: '无效的文件路径'
+        });
+      }
+      
+      // 额外检查：禁止包含路径遍历字符
+      if (resource.fileInfo.filePath.includes('..') || resource.fileInfo.filePath.includes('~')) {
+        console.warn(`检测到可疑路径字符: ${resource.fileInfo.filePath}`);
+        return res.status(403).json({
+          success: false,
+          message: '文件路径包含非法字符'
+        });
+      }
+      
+      const filePath = requestedPath;
       
       if (fs.existsSync(filePath)) {
         // 增加下载计数

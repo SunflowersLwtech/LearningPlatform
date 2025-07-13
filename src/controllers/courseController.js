@@ -35,8 +35,22 @@ exports.getAllCourses = async (req, res) => {
     if (academicYear) filter.academicYear = academicYear;
     if (teacher) filter.teacher = teacher;
     
-    if (req.userType === 'teacher' && !req.user.permissions?.canAccessReports) {
-      filter.teacher = req.user.id;
+    // 教师只能查看自己的课程（除非是管理员）
+    if (req.userType === 'staff') {
+      const Staff = require('../models/Staff');
+      const staff = await Staff.findById(req.user.id);
+      
+      // 管理员、校长可以查看所有课程
+      if (!['admin', 'principal', 'vice_principal'].includes(staff.role)) {
+        filter.teacher = req.user.id;
+      }
+    } else if (req.userType === 'student') {
+      // 学生只能查看自己班级的课程
+      const Student = require('../models/Student');
+      const student = await Student.findById(req.user.id);
+      if (student && student.class) {
+        filter.enrolledClasses = student.class;
+      }
     }
     
     const courses = await Course.find(filter)
@@ -96,10 +110,27 @@ exports.updateCourse = async (req, res) => {
       });
     }
     
-    if (req.userType === 'teacher' && course.teacher.toString() !== req.user.id) {
+    // 权限检查：只有课程教师或管理员可以修改
+    if (req.userType === 'staff') {
+      const Staff = require('../models/Staff');
+      const staff = await Staff.findById(req.user.id);
+      
+      const isAdmin = ['admin', 'principal', 'vice_principal'].includes(staff.role);
+      const isCourseTeacher = course.teacher.toString() === req.user.id;
+      const isAssistant = course.assistants && course.assistants.some(
+        assistant => assistant.toString() === req.user.id
+      );
+      
+      if (!isAdmin && !isCourseTeacher && !isAssistant) {
+        return res.status(403).json({
+          success: false,
+          message: '只能修改自己的课程或被授权的课程'
+        });
+      }
+    } else {
       return res.status(403).json({
         success: false,
-        message: '只能修改自己的课程'
+        message: '学生无权修改课程信息'
       });
     }
     
@@ -156,7 +187,7 @@ exports.enrollClass = async (req, res) => {
     const { classIds } = req.body;
     const courseId = req.params.id;
     
-    const course = await Course.findById(courseId);
+    const course = await Course.findById(courseId).populate('enrolledClasses');
     if (!course) {
       return res.status(404).json({
         success: false,
@@ -176,7 +207,47 @@ exports.enrollClass = async (req, res) => {
       });
     }
     
-    course.enrolledClasses = [...new Set([...course.enrolledClasses, ...classIds])];
+    // 检查班级容量和学生数量
+    for (const classData of validClasses) {
+      if (classData.currentEnrollment >= classData.capacity) {
+        return res.status(400).json({
+          success: false,
+          message: `班级 ${classData.name} 已满员，无法选课`
+        });
+      }
+    }
+    
+    // 检查时间冲突
+    const conflictCheck = await checkScheduleConflicts(course, validClasses);
+    if (conflictCheck.hasConflict) {
+      return res.status(400).json({
+        success: false,
+        message: `存在时间冲突: ${conflictCheck.message}`
+      });
+    }
+    
+    // 检查同一学期同一学科的重复选课
+    const existingCourses = await Course.find({
+      semester: course.semester,
+      academicYear: course.academicYear,
+      subject: course.subject,
+      enrolledClasses: { $in: classIds },
+      _id: { $ne: courseId }
+    });
+    
+    if (existingCourses.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `班级已选择该学期的同学科课程`
+      });
+    }
+    
+    // 添加新的班级ID，避免重复
+    const newClassIds = classIds.filter(id => 
+      !course.enrolledClasses.some(enrolled => enrolled._id.toString() === id.toString())
+    );
+    
+    course.enrolledClasses = [...course.enrolledClasses, ...newClassIds];
     await course.save();
     
     res.json({
@@ -191,6 +262,49 @@ exports.enrollClass = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// 辅助函数：检查课程时间冲突
+const checkScheduleConflicts = async (course, classes) => {
+  if (!course.schedule || course.schedule.length === 0) {
+    return { hasConflict: false };
+  }
+  
+  for (const courseTime of course.schedule) {
+    for (const classData of classes) {
+      if (!classData.schedule) continue;
+      
+      for (const classSchedule of classData.schedule) {
+        if (classSchedule.day !== courseTime.day) continue;
+        
+        // 检查时间是否重叠
+        const courseStart = timeToMinutes(courseTime.startTime);
+        const courseEnd = timeToMinutes(courseTime.endTime);
+        
+        for (const period of classSchedule.periods) {
+          const periodStart = timeToMinutes(period.startTime);
+          const periodEnd = timeToMinutes(period.endTime);
+          
+          // 检查时间重叠
+          if (!(courseEnd <= periodStart || courseStart >= periodEnd)) {
+            return {
+              hasConflict: true,
+              message: `${classData.name} 在 ${courseTime.day} ${courseTime.startTime}-${courseTime.endTime} 时间段已有安排`
+            };
+          }
+        }
+      }
+    }
+  }
+  
+  return { hasConflict: false };
+};
+
+// 辅助函数：将时间字符串转换为分钟数
+const timeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + (minutes || 0);
 };
 
 exports.getCourseStudents = async (req, res) => {

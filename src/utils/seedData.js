@@ -152,9 +152,14 @@ const seedData = async () => {
     const students = [];
     for (let i = 1; i <= 60; i++) {
       const classIndex = Math.floor((i - 1) / 20);
+      const studentId = `2023${String(i).padStart(4, '0')}`;
+      // 为每个学生创建密码哈希（使用学号作为默认密码）
+      const hashedPassword = await bcrypt.hash(studentId, salt);
+      
       students.push({
-        studentId: `2023${String(i).padStart(4, '0')}`,
+        studentId,
         name: `学生${i}`,
+        password: hashedPassword, // 添加必需的密码字段
         gender: i % 2 === 0 ? 'female' : 'male',
         dateOfBirth: new Date(2005, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
         grade: savedClasses[classIndex].grade,

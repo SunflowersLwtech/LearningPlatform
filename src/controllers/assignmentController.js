@@ -4,6 +4,23 @@ const Grade = require('../models/Grade');
 const Course = require('../models/Course');
 const Student = require('../models/Student');
 
+const getCurrentSemester = () => {
+  const month = new Date().getMonth() + 1;
+  if (month >= 9 || month <= 1) {
+    return 'fall';
+  } else if (month >= 2 && month <= 6) {
+    return 'spring';
+  } else {
+    return 'summer';
+  }
+};
+
+const getCurrentAcademicYear = () => {
+  const year = new Date().getFullYear();
+  const month = new Date().getMonth() + 1;
+  return month >= 9 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+};
+
 exports.createAssignment = async (req, res) => {
   try {
     const assignment = new Assignment({
@@ -11,9 +28,6 @@ exports.createAssignment = async (req, res) => {
       teacher: req.user.id
     });
     
-    if (assignment.questions && assignment.questions.length > 0) {
-      assignment.totalPoints = assignment.questions.reduce((total, q) => total + q.points, 0);
-    }
     
     await assignment.save();
     
@@ -155,10 +169,6 @@ exports.updateAssignment = async (req, res) => {
       { new: true, runValidators: true }
     );
     
-    if (updatedAssignment.questions && updatedAssignment.questions.length > 0) {
-      updatedAssignment.totalPoints = updatedAssignment.questions.reduce((total, q) => total + q.points, 0);
-      await updatedAssignment.save();
-    }
     
     res.json({
       success: true,
@@ -310,7 +320,30 @@ exports.gradeSubmission = async (req, res) => {
     }
     
     const maxScore = assignment.totalPoints;
-    const percentage = (score / maxScore) * 100;
+    
+    // 防止除零错误和处理边界条件
+    if (maxScore <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: '作业总分必须大于0才能计算成绩'
+      });
+    }
+    
+    if (score < 0) {
+      return res.status(400).json({
+        success: false,
+        message: '分数不能为负数'
+      });
+    }
+    
+    if (score > maxScore) {
+      return res.status(400).json({
+        success: false,
+        message: '分数不能超过总分'
+      });
+    }
+    
+    const percentage = Math.round((score / maxScore) * 100 * 100) / 100;
     
     let letterGrade = 'F';
     if (percentage >= 90) letterGrade = 'A';
@@ -358,8 +391,8 @@ exports.gradeSubmission = async (req, res) => {
         maxScore,
         percentage,
         letterGrade,
-        semester: 'spring',
-        academicYear: new Date().getFullYear().toString(),
+        semester: req.body.semester || getCurrentSemester(),
+        academicYear: req.body.academicYear || getCurrentAcademicYear(),
         gradedBy: req.user.id,
         comments
       });

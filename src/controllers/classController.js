@@ -1,6 +1,7 @@
 const Class = require('../models/Class');
 const Student = require('../models/Student');
 const Staff = require('../models/Staff');
+const mongoose = require('mongoose');
 
 exports.createClass = async (req, res) => {
   try {
@@ -142,27 +143,71 @@ exports.updateSchedule = async (req, res) => {
 };
 
 exports.assignTeacher = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
     const { teacherId, subject, role } = req.body;
     const classId = req.params.id;
     
-    const teacher = await Staff.findById(teacherId);
+    // 验证必需字段
+    if (!teacherId || !role) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: '教师ID和角色为必需字段'
+      });
+    }
+    
+    if (role === 'subject_teacher' && !subject) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: '学科教师必须指定学科'
+      });
+    }
+    
+    const teacher = await Staff.findById(teacherId).session(session);
     if (!teacher) {
+      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: '教师不存在'
       });
     }
     
-    const classData = await Class.findById(classId);
+    // 验证教师角色
+    const validTeacherRoles = ['teacher', 'head_teacher', 'director', 'principal', 'vice_principal'];
+    if (!validTeacherRoles.includes(teacher.role)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: '该员工不是教师，无法分配给班级'
+      });
+    }
+    
+    const classData = await Class.findById(classId).session(session);
     if (!classData) {
+      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: '班级不存在'
       });
     }
     
+    // 处理班主任分配
     if (role === 'head_teacher') {
+      // 如果之前有班主任，移除其关联
+      if (classData.headTeacher && classData.headTeacher.toString() !== teacherId) {
+        const previousHeadTeacher = await Staff.findById(classData.headTeacher).session(session);
+        if (previousHeadTeacher) {
+          previousHeadTeacher.classes = previousHeadTeacher.classes.filter(
+            cls => cls.toString() !== classId
+          );
+          await previousHeadTeacher.save({ session });
+        }
+      }
+      
       classData.headTeacher = teacherId;
     } else if (role === 'subject_teacher') {
       const existingIndex = classData.subjectTeachers.findIndex(
@@ -170,6 +215,18 @@ exports.assignTeacher = async (req, res) => {
       );
       
       if (existingIndex > -1) {
+        // 移除之前的学科教师关联
+        const previousTeacherId = classData.subjectTeachers[existingIndex].teacher;
+        if (previousTeacherId && previousTeacherId.toString() !== teacherId) {
+          const previousTeacher = await Staff.findById(previousTeacherId).session(session);
+          if (previousTeacher) {
+            previousTeacher.classes = previousTeacher.classes.filter(
+              cls => cls.toString() !== classId
+            );
+            await previousTeacher.save({ session });
+          }
+        }
+        
         classData.subjectTeachers[existingIndex].teacher = teacherId;
       } else {
         classData.subjectTeachers.push({
@@ -179,24 +236,34 @@ exports.assignTeacher = async (req, res) => {
       }
     }
     
-    await classData.save();
+    await classData.save({ session });
     
+    // 确保教师的班级列表包含该班级
     if (!teacher.classes.includes(classId)) {
       teacher.classes.push(classId);
-      await teacher.save();
+      await teacher.save({ session });
     }
+    
+    await session.commitTransaction();
+    
+    const updatedClassData = await Class.findById(classId)
+      .populate('headTeacher', 'name staffId')
+      .populate('subjectTeachers.teacher', 'name staffId');
     
     res.json({
       success: true,
       message: '教师分配成功',
-      data: classData
+      data: updatedClassData
     });
   } catch (error) {
+    await session.abortTransaction();
     res.status(400).json({
       success: false,
       message: '分配教师失败',
       error: error.message
     });
+  } finally {
+    session.endSession();
   }
 };
 

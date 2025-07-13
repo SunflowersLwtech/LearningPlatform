@@ -72,6 +72,24 @@ const studentSchema = new mongoose.Schema({
     previousSchool: String,
     transferCredits: Number,
     academicNotes: String
+  },
+  password: {
+    type: String,
+    required: true,
+    select: false
+  },
+  avatar: {
+    type: String,
+    default: null
+  },
+  lastLogin: {
+    type: Date,
+    default: null
+  },
+  preferredLanguage: {
+    type: String,
+    enum: ['zh-CN', 'en-US'],
+    default: 'zh-CN'
   }
 }, {
   timestamps: true
