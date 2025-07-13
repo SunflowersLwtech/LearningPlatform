@@ -28,12 +28,12 @@ exports.getAllCourses = async (req, res) => {
   try {
     const { subject, grade, semester, academicYear, teacher } = req.query;
     
-    let filter = { isActive: true };
-    if (subject) filter.subject = subject;
-    if (grade) filter.grade = grade;
-    if (semester) filter.semester = semester;
-    if (academicYear) filter.academicYear = academicYear;
-    if (teacher) filter.teacher = teacher;
+    const filter = { isActive: true };
+    if (subject) {filter.subject = subject;}
+    if (grade) {filter.grade = grade;}
+    if (semester) {filter.semester = semester;}
+    if (academicYear) {filter.academicYear = academicYear;}
+    if (teacher) {filter.teacher = teacher;}
     
     // 教师只能查看自己的课程（除非是管理员）
     if (req.userType === 'staff') {
@@ -272,10 +272,10 @@ const checkScheduleConflicts = async (course, classes) => {
   
   for (const courseTime of course.schedule) {
     for (const classData of classes) {
-      if (!classData.schedule) continue;
+      if (!classData.schedule) {continue;}
       
       for (const classSchedule of classData.schedule) {
-        if (classSchedule.day !== courseTime.day) continue;
+        if (classSchedule.day !== courseTime.day) {continue;}
         
         // 检查时间是否重叠
         const courseStart = timeToMinutes(courseTime.startTime);
@@ -302,7 +302,7 @@ const checkScheduleConflicts = async (course, classes) => {
 
 // 辅助函数：将时间字符串转换为分钟数
 const timeToMinutes = (timeStr) => {
-  if (!timeStr) return 0;
+  if (!timeStr) {return 0;}
   const [hours, minutes] = timeStr.split(':').map(Number);
   return hours * 60 + (minutes || 0);
 };

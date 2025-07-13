@@ -86,9 +86,9 @@ exports.getAllStudents = async (req, res) => {
   try {
     const { page = 1, limit = 20, grade, class: classId, search, gender } = req.query;
 
-    let filter = {};
-    if (grade) filter.grade = grade;
-    if (classId) filter.class = classId;
+    const filter = {};
+    if (grade) {filter.grade = grade;}
+    if (classId) {filter.class = classId;}
     if (gender && ['male', 'female'].includes(gender)) {
       filter.gender = gender;
     }
@@ -450,8 +450,8 @@ exports.getStudentGPA = async (req, res) => {
     
     // 获取详细成绩信息
     const filter = { student: id };
-    if (academicYear) filter.academicYear = academicYear;
-    if (semester) filter.semester = semester;
+    if (academicYear) {filter.academicYear = academicYear;}
+    if (semester) {filter.semester = semester;}
     
     const grades = await Grade.find(filter)
       .populate('course', 'name subject credits')

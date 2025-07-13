@@ -9,6 +9,29 @@ const API_BASE = '/api';
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => document.querySelectorAll(selector);
 
+// 安全HTML处理函数
+const sanitizeHtml = (text) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+};
+
+// 安全设置元素内容
+const safeSetContent = (element, content, isHtml = false) => {
+    if (typeof element === 'string') {
+        element = $(element);
+    }
+    if (!element) {return;}
+    
+    if (isHtml) {
+        // 只有明确标记为HTML的内容才使用innerHTML
+        element.innerHTML = content;
+    } else {
+        // 默认使用textContent确保安全
+        element.textContent = content;
+    }
+};
+
 // HTTP 请求封装
 const api = {
     async request(method, url, data = null) {
@@ -83,7 +106,7 @@ function showAlert(message, type = 'info') {
     alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
     alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
     alertDiv.innerHTML = `
-        ${message}
+        ${sanitizeHtml(message)}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     
@@ -105,7 +128,7 @@ function showLoading(container = '#content') {
             </div>
         </div>
     `;
-    $(container).innerHTML = loadingHtml;
+    safeSetContent(container, loadingHtml, true);
 }
 
 // 初始化应用
@@ -219,7 +242,7 @@ function logout() {
     currentUser = null;
     
     updateNavbar();
-    $('#content').innerHTML = '';
+    safeSetContent('#content', '');
     showAlert('已退出登录', 'info');
 }
 
@@ -235,7 +258,7 @@ function showRegisterModal() {
 
 // 显示仪表板
 async function showDashboard() {
-    if (!currentUser) return;
+    if (!currentUser) {return;}
 
     $('#dashboardContent').classList.remove('d-none');
     showLoading('#dashboardContent');
@@ -251,13 +274,13 @@ async function showDashboard() {
             dashboardHtml = renderStaffDashboard();
         }
 
-        $('#dashboardContent').innerHTML = dashboardHtml;
+        safeSetContent('#dashboardContent', dashboardHtml, true);
 
         // 设置活动导航
         setActiveNav('仪表板');
     } catch (error) {
         console.error('加载仪表板失败:', error);
-        $('#dashboardContent').innerHTML = '<div class="alert alert-danger">加载仪表板失败: ' + (error.message || '未知错误') + '</div>';
+        safeSetContent('#dashboardContent', `<div class="alert alert-danger">加载仪表板失败: ${sanitizeHtml(error.message || '未知错误')}</div>`, true);
     }
 }
 
@@ -476,7 +499,7 @@ async function showStudentManagement() {
         const students = response.data;
         const pagination = response.pagination;
         
-        $('#dashboardContent').innerHTML = `
+        safeSetContent('#dashboardContent', `
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-users me-2"></i>学生管理</h2>
                 <button class="btn btn-primary" onclick="showAddStudentModal()">
@@ -561,13 +584,13 @@ async function showStudentManagement() {
                     ` : ''}
                 </div>
             </div>
-        `;
+        `, true);
         
         // 绑定搜索事件
         $('#studentSearch').addEventListener('input', debounce(searchStudents, 300));
         
     } catch (error) {
-        $('#dashboardContent').innerHTML = '<div class="alert alert-danger">加载学生数据失败</div>';
+        safeSetContent('#dashboardContent', '<div class="alert alert-danger">加载学生数据失败</div>', true);
     }
 }
 
@@ -580,7 +603,7 @@ async function showClassManagement() {
         const response = await api.get('/classes');
         const classes = response.data;
         
-        $('#dashboardContent').innerHTML = `
+        safeSetContent('#dashboardContent', `
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-school me-2"></i>班级管理</h2>
                 <button class="btn btn-primary" onclick="showAddClassModal()">
@@ -640,10 +663,10 @@ async function showClassManagement() {
                     </div>
                 `).join('')}
             </div>
-        `;
+        `, true);
         
     } catch (error) {
-        $('#dashboardContent').innerHTML = '<div class="alert alert-danger">加载班级数据失败</div>';
+        safeSetContent('#dashboardContent', '<div class="alert alert-danger">加载班级数据失败</div>', true);
     }
 }
 
@@ -656,7 +679,7 @@ async function showCourseManagement() {
         const response = await api.get('/courses');
         const courses = response.data;
         
-        $('#dashboardContent').innerHTML = `
+        safeSetContent('#dashboardContent', `
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-book me-2"></i>课程管理</h2>
                 <button class="btn btn-primary" onclick="showAddCourseModal()">
@@ -694,10 +717,10 @@ async function showCourseManagement() {
                     </div>
                 `).join('')}
             </div>
-        `;
+        `, true);
         
     } catch (error) {
-        $('#dashboardContent').innerHTML = '<div class="alert alert-danger">加载课程数据失败</div>';
+        safeSetContent('#dashboardContent', '<div class="alert alert-danger">加载课程数据失败</div>', true);
     }
 }
 
@@ -710,7 +733,7 @@ async function showAssignmentManagement() {
         const response = await api.get('/assignments');
         const assignments = response.data;
         
-        $('#dashboardContent').innerHTML = `
+        safeSetContent('#dashboardContent', `
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-tasks me-2"></i>作业管理</h2>
                 <button class="btn btn-primary" onclick="showAddAssignmentModal()">
@@ -768,10 +791,10 @@ async function showAssignmentManagement() {
                     </div>
                 </div>
             </div>
-        `;
+        `, true);
         
     } catch (error) {
-        $('#dashboardContent').innerHTML = '<div class="alert alert-danger">加载作业数据失败</div>';
+        safeSetContent('#dashboardContent', '<div class="alert alert-danger">加载作业数据失败</div>', true);
     }
 }
 
@@ -785,7 +808,7 @@ async function showAnalytics() {
         const statsResponse = await api.get('/analytics/stats');
         const stats = statsResponse.data;
         
-        $('#dashboardContent').innerHTML = `
+        safeSetContent('#dashboardContent', `
             <div class="row">
                 <div class="col-12">
                     <h2 class="mb-4"><i class="fas fa-chart-bar me-2"></i>数据分析</h2>
@@ -872,19 +895,19 @@ async function showAnalytics() {
                     </div>
                 </div>
             </div>
-        `;
+        `, true);
         
         // 初始化图表
         await initializeCharts(stats);
         
     } catch (error) {
         showAlert('加载数据分析失败', 'danger');
-        $('#dashboardContent').innerHTML = `
+        safeSetContent('#dashboardContent', `
             <div class="alert alert-danger">
                 <h4>加载失败</h4>
                 <p>无法获取统计数据，请稍后重试。</p>
             </div>
-        `;
+        `, true);
     }
 }
 
@@ -1039,7 +1062,7 @@ async function showResources() {
         const response = await api.get('/learning/resources');
         const resources = response.data;
         
-        $('#dashboardContent').innerHTML = `
+        safeSetContent('#dashboardContent', `
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-folder-open me-2"></i>资源库</h2>
                 <button class="btn btn-primary" onclick="showUploadResourceModal()">
@@ -1074,10 +1097,10 @@ async function showResources() {
                     </div>
                 `).join('')}
             </div>
-        `;
+        `, true);
         
     } catch (error) {
-        $('#dashboardContent').innerHTML = '<div class="alert alert-danger">加载资源数据失败</div>';
+        safeSetContent('#dashboardContent', '<div class="alert alert-danger">加载资源数据失败</div>', true);
     }
 }
 
@@ -1090,7 +1113,7 @@ async function showDiscussions() {
         const response = await api.get('/learning/discussions');
         const discussions = response.data;
         
-        $('#dashboardContent').innerHTML = `
+        safeSetContent('#dashboardContent', `
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-comments me-2"></i>讨论区</h2>
                 <button class="btn btn-primary" onclick="showCreateDiscussionModal()">
@@ -1130,10 +1153,10 @@ async function showDiscussions() {
                     </div>
                 `).join('')}
             </div>
-        `;
+        `, true);
         
     } catch (error) {
-        $('#dashboardContent').innerHTML = '<div class="alert alert-danger">加载讨论数据失败</div>';
+        safeSetContent('#dashboardContent', '<div class="alert alert-danger">加载讨论数据失败</div>', true);
     }
 }
 
@@ -1143,7 +1166,7 @@ function showProfile() {
     
     const userType = currentUser?.userType === 'staff' ? 'staff' : 'student';
     
-    $('#dashboardContent').innerHTML = `
+    safeSetContent('#dashboardContent', `
         <div class="row">
             <div class="col-12">
                 <h2 class="mb-4"><i class="fas fa-user-edit me-2"></i>个人资料</h2>
@@ -1234,7 +1257,7 @@ function showProfile() {
                 </div>
             </div>
         </div>
-    `;
+    `, true);
     
     // 绑定头像上传事件
     $('#avatarInput').addEventListener('change', handleAvatarUpload);
@@ -1330,7 +1353,7 @@ async function submitProfileEdit() {
 // 处理头像上传
 async function handleAvatarUpload(event) {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {return;}
     
     // 验证文件类型
     if (!file.type.startsWith('image/')) {
@@ -2689,8 +2712,8 @@ async function submitCreateDiscussion() {
         }
         
         // 清理空字段
-        if (!data.course) delete data.course;
-        if (!data.class) delete data.class;
+        if (!data.course) {delete data.course;}
+        if (!data.class) {delete data.class;}
         
         console.log('提交讨论数据:', data); // 调试信息
         
@@ -4333,8 +4356,8 @@ async function submitEditCourse(courseId) {
         data.enrolledClasses = Array.from(checkboxes).map(cb => cb.value);
         
         // 转换数值类型
-        if (data.credits) data.credits = parseFloat(data.credits);
-        if (data.totalHours) data.totalHours = parseInt(data.totalHours);
+        if (data.credits) {data.credits = parseFloat(data.credits);}
+        if (data.totalHours) {data.totalHours = parseInt(data.totalHours);}
         data.isActive = data.isActive === 'true';
         
         await api.put(`/courses/${courseId}`, data);
@@ -4638,7 +4661,7 @@ function previewFile(input) {
 }
 
 function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) {return '0 Bytes';}
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -4743,7 +4766,7 @@ async function submitNewPost(discussionId) {
             return;
         }
 
-        for (let file of files) {
+        for (const file of files) {
             if (file.size > 10 * 1024 * 1024) { // 10MB
                 showAlert(`文件 ${file.name} 超过10MB限制`, 'warning');
                 return;

@@ -60,7 +60,7 @@ exports.generateStudentReport = async (req, res) => {
     
     // 使用加权平均计算学科成绩
     const calculateWeightedAverage = (gradeList) => {
-      if (gradeList.length === 0) return 0;
+      if (gradeList.length === 0) {return 0;}
       
       let totalWeightedScore = 0;
       let totalWeight = 0;
@@ -185,7 +185,7 @@ exports.generateClassReport = async (req, res) => {
     
     // 实现加权平均计算
     const calculateWeightedAverage = (gradeList) => {
-      if (gradeList.length === 0) return 0;
+      if (gradeList.length === 0) {return 0;}
       
       let totalWeightedScore = 0;
       let totalWeight = 0;
@@ -281,12 +281,12 @@ exports.getGradeDistribution = async (req, res) => {
   try {
     const { course, class: classId, academicYear, semester } = req.query;
     
-    let filter = {
+    const filter = {
       academicYear: academicYear || new Date().getFullYear().toString()
     };
     
-    if (course) filter.course = course;
-    if (semester) filter.semester = semester;
+    if (course) {filter.course = course;}
+    if (semester) {filter.semester = semester;}
     
     if (classId) {
       const students = await Student.find({ class: classId });
@@ -304,11 +304,11 @@ exports.getGradeDistribution = async (req, res) => {
     };
     
     grades.forEach(grade => {
-      if (grade.percentage >= 90) distribution.A.count++;
-      else if (grade.percentage >= 80) distribution.B.count++;
-      else if (grade.percentage >= 70) distribution.C.count++;
-      else if (grade.percentage >= 60) distribution.D.count++;
-      else distribution.F.count++;
+      if (grade.percentage >= 90) {distribution.A.count++;}
+      else if (grade.percentage >= 80) {distribution.B.count++;}
+      else if (grade.percentage >= 70) {distribution.C.count++;}
+      else if (grade.percentage >= 60) {distribution.D.count++;}
+      else {distribution.F.count++;}
     });
     
     const total = grades.length;
@@ -341,8 +341,8 @@ exports.getAttendanceAnalytics = async (req, res) => {
   try {
     const { class: classId, startDate, endDate } = req.query;
     
-    let filter = {};
-    if (classId) filter.class = classId;
+    const filter = {};
+    if (classId) {filter.class = classId;}
     if (startDate && endDate) {
       filter.date = {
         $gte: new Date(startDate),

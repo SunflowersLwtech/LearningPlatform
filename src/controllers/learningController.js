@@ -58,12 +58,12 @@ exports.getAssignments = async (req, res) => {
     const studentId = req.user.id;
     const { status, course, page = 1, limit = 10 } = req.query;
     
-    let filter = {
+    const filter = {
       'assignedTo.students': studentId,
       isPublished: true
     };
     
-    if (course) filter.course = course;
+    if (course) {filter.course = course;}
     if (status === 'pending') {
       filter.dueDate = { $gte: new Date() };
     } else if (status === 'overdue') {
@@ -220,14 +220,14 @@ exports.getResources = async (req, res) => {
   try {
     const { subject, grade, type, search, page = 1, limit = 12 } = req.query;
     
-    let filter = { 
+    const filter = { 
       isActive: true,
       accessLevel: { $in: ['public', 'school'] }
     };
     
-    if (subject) filter.subject = subject;
-    if (grade) filter.grade = grade;
-    if (type) filter.type = type;
+    if (subject) {filter.subject = subject;}
+    if (grade) {filter.grade = grade;}
+    if (type) {filter.type = type;}
     if (search) {
       filter.$text = { $search: search };
     }
@@ -375,14 +375,14 @@ exports.getDiscussions = async (req, res) => {
   try {
     const { course, class: classId, type, page = 1, limit = 10 } = req.query;
     
-    let filter = { 
+    const filter = { 
       isActive: true,
       isLocked: false
     };
     
-    if (course) filter.course = course;
-    if (classId) filter.class = classId;
-    if (type) filter.type = type;
+    if (course) {filter.course = course;}
+    if (classId) {filter.class = classId;}
+    if (type) {filter.type = type;}
     
     const discussions = await Discussion.find(filter)
       .populate('creator', 'name')

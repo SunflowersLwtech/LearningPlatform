@@ -27,9 +27,9 @@ exports.getAllStaff = async (req, res) => {
   try {
     const { page = 1, limit = 20, department, role, search } = req.query;
     
-    let filter = {};
-    if (department) filter.department = department;
-    if (role) filter.role = role;
+    const filter = {};
+    if (department) {filter.department = department;}
+    if (role) {filter.role = role;}
     
     if (search && search.trim()) {
       const searchTerm = search.trim();
@@ -148,10 +148,10 @@ exports.updateStaff = async (req, res) => {
     const { name, email, department, phone } = req.body;
     
     const updateData = {};
-    if (name) updateData.name = name;
-    if (email) updateData.email = email;
-    if (department) updateData.department = department;
-    if (phone !== undefined) updateData.phone = phone;
+    if (name) {updateData.name = name;}
+    if (email) {updateData.email = email;}
+    if (department) {updateData.department = department;}
+    if (phone !== undefined) {updateData.phone = phone;}
     
     // 如果更新邮箱，检查是否重复
     if (email) {

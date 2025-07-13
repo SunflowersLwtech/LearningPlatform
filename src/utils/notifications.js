@@ -1,8 +1,8 @@
 const { Server } = require('socket.io');
 
 let io;
-let connectedUsers = new Map(); // 存储连接的用户信息
-let roomSubscriptions = new Map(); // 存储房间订阅信息
+const connectedUsers = new Map(); // 存储连接的用户信息
+const roomSubscriptions = new Map(); // 存储房间订阅信息
 
 const initializeSocket = (server) => {
   io = new Server(server, {
@@ -376,7 +376,7 @@ const enhancedNotifications = {
      * 广播数据更新
      */
     broadcastDataUpdate(type, id, data, operation = 'update', metadata = {}) {
-      if (!io) return;
+      if (!io) {return;}
       
       const roomName = `sync_${type}_${id}`;
       const updateData = {
@@ -396,7 +396,7 @@ const enhancedNotifications = {
      * 广播批量数据更新
      */
     broadcastBatchUpdate(type, updates, operation = 'batch_update', metadata = {}) {
-      if (!io || !Array.isArray(updates)) return;
+      if (!io || !Array.isArray(updates)) {return;}
       
       const batchData = {
         type,
@@ -432,7 +432,7 @@ const enhancedNotifications = {
      * 广播状态变更
      */
     broadcastStatusChange(type, id, oldStatus, newStatus, metadata = {}) {
-      if (!io) return;
+      if (!io) {return;}
       
       const statusData = {
         type,
@@ -454,7 +454,7 @@ const enhancedNotifications = {
      * 广播关联数据变更
      */
     broadcastRelationshipChange(type, id, relationshipType, relatedData, operation, metadata = {}) {
-      if (!io) return;
+      if (!io) {return;}
       
       const relationData = {
         type,
@@ -489,7 +489,7 @@ const enhancedNotifications = {
      * 广播连接统计
      */
     broadcastConnectionStats() {
-      if (!io) return;
+      if (!io) {return;}
       
       const stats = {
         totalConnections: connectedUsers.size,
@@ -511,7 +511,7 @@ const enhancedNotifications = {
      * 广播服务器状态
      */
     broadcastServerStatus(status, message = '') {
-      if (!io) return;
+      if (!io) {return;}
       
       io.emit('server-status', {
         status, // 'healthy', 'warning', 'error', 'maintenance'
@@ -528,7 +528,7 @@ const enhancedNotifications = {
      * 广播用户正在编辑
      */
     broadcastUserEditing(type, id, userId, userName, field = null) {
-      if (!io) return;
+      if (!io) {return;}
       
       const roomName = `sync_${type}_${id}`;
       io.to(roomName).emit('user-editing', {
@@ -545,7 +545,7 @@ const enhancedNotifications = {
      * 广播用户停止编辑
      */
     broadcastUserStoppedEditing(type, id, userId) {
-      if (!io) return;
+      if (!io) {return;}
       
       const roomName = `sync_${type}_${id}`;
       io.to(roomName).emit('user-stopped-editing', {
@@ -560,7 +560,7 @@ const enhancedNotifications = {
      * 广播冲突检测
      */
     broadcastConflictDetected(type, id, conflictingUsers, field) {
-      if (!io) return;
+      if (!io) {return;}
       
       const roomName = `sync_${type}_${id}`;
       io.to(roomName).emit('edit-conflict', {
@@ -576,7 +576,7 @@ const enhancedNotifications = {
 
 // 通用的发射函数，支持更灵活的通知
 function emitNotification(targetType, targetId, notificationData) {
-  if (!io) return;
+  if (!io) {return;}
   
   let roomName;
   

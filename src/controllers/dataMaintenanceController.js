@@ -443,7 +443,7 @@ async function checkCalculatedFields() {
 async function fixStudentClassIssues(session, autoFix) {
   const issues = await DataConsistencyChecker.checkStudentClassConsistency();
   let fixed = 0;
-  let failed = 0;
+  const failed = 0;
   
   if (autoFix) {
     await DataConsistencyChecker.fixInconsistencies(issues);

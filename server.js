@@ -10,12 +10,30 @@ const { initializeSocket } = require('./src/utils/notifications');
 
 dotenv.config();
 
+// 验证必需的环境变量
+const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI'];
+for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+        console.error(`错误: 缺少必需的环境变量 ${envVar}`);
+        process.exit(1);
+    }
+}
+
 const app = express();
 const server = http.createServer(app);
 
 connectDB();
 
-app.use(cors());
+// 配置CORS - 更安全的设置
+const corsOptions = {
+    origin: process.env.NODE_ENV === 'production' 
+        ? process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000']
+        : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://0.0.0.0:3000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 // 配置静态文件服务
@@ -24,8 +42,8 @@ app.use(express.static(path.join(__dirname, 'public'), {
   etag: true
 }));
 
-// 配置根目录的静态文件服务（用于测试文件）
-app.use(express.static(__dirname, {
+// 限制根目录静态文件访问 - 只允许特定文件类型
+app.use('/views', express.static(path.join(__dirname, 'views'), {
   maxAge: '1h',
   etag: true
 }));
@@ -50,8 +68,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
       res.setHeader('Content-Type', 'image/gif');
     }
 
-    // 允许跨域访问
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // CORS头已由中间件处理，无需重复设置
   }
 }));
 app.use(rateLimiter());

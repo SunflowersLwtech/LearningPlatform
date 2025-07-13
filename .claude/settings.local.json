@@ -11,7 +11,11 @@
       "Bash(npm start)",
       "Bash(curl:*)",
       "Bash(npm install:*)",
-      "Bash(echo)"
+      "Bash(echo)",
+      "mcp__ide__getDiagnostics",
+      "Bash(ls:*)",
+      "Bash(npm run lint:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

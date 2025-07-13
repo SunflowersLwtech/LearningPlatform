@@ -139,11 +139,11 @@ exports.getAllAssignments = async (req, res) => {
   try {
     const { course, type, status, page = 1, limit = 10 } = req.query;
     
-    let filter = {};
-    if (course) filter.course = course;
-    if (type) filter.type = type;
-    if (status === 'published') filter.isPublished = true;
-    if (status === 'draft') filter.isPublished = false;
+    const filter = {};
+    if (course) {filter.course = course;}
+    if (type) {filter.type = type;}
+    if (status === 'published') {filter.isPublished = true;}
+    if (status === 'draft') {filter.isPublished = false;}
     
     if (req.userType === 'teacher') {
       filter.teacher = req.user.id;
@@ -436,10 +436,10 @@ exports.gradeSubmission = async (req, res) => {
     const percentage = Math.round((score / maxScore) * 100 * 100) / 100;
     
     let letterGrade = 'F';
-    if (percentage >= 90) letterGrade = 'A';
-    else if (percentage >= 80) letterGrade = 'B';
-    else if (percentage >= 70) letterGrade = 'C';
-    else if (percentage >= 60) letterGrade = 'D';
+    if (percentage >= 90) {letterGrade = 'A';}
+    else if (percentage >= 80) {letterGrade = 'B';}
+    else if (percentage >= 70) {letterGrade = 'C';}
+    else if (percentage >= 60) {letterGrade = 'D';}
     
     submission.grade = {
       score,

@@ -211,7 +211,7 @@ function hasPermission(user, userType, permission) {
  */
 function canAccessResource(user, userType, resourceType, resource, action = 'read') {
   const rules = RESOURCE_ACCESS_RULES[resourceType];
-  if (!rules) return false;
+  if (!rules) {return false;}
   
   // 检查自己的资源
   if (rules.own && rules.own.includes(userType)) {

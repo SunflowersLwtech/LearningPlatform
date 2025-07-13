@@ -1,3 +1,10 @@
+// 安全HTML处理函数
+const sanitizeHtml = (text) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+};
+
 // 通知系统客户端
 class NotificationManager {
     constructor() {
@@ -10,7 +17,7 @@ class NotificationManager {
 
     // 初始化Socket连接
     init(user) {
-        if (!user) return;
+        if (!user) {return;}
 
         this.socket = io();
         
@@ -100,7 +107,7 @@ class NotificationManager {
             <div class="d-flex">
                 <div class="toast-body">
                     <i class="${this.getIcon(type)} me-2"></i>
-                    ${message}
+                    ${sanitizeHtml(message)}
                     <small class="d-block text-white-50 mt-1">${this.formatTime(timestamp)}</small>
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
@@ -141,7 +148,7 @@ class NotificationManager {
         if (statusEl) {
             statusEl.className = `alert alert-${type} alert-dismissible fade show`;
             statusEl.innerHTML = `
-                ${message}
+                ${sanitizeHtml(message)}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
         }
@@ -181,7 +188,7 @@ class NotificationManager {
 
     // 播放通知声音
     playNotificationSound(type) {
-        if (!this.shouldPlaySound()) return;
+        if (!this.shouldPlaySound()) {return;}
         
         const audio = new Audio();
         switch (type) {
@@ -213,9 +220,9 @@ class NotificationManager {
         const diffMs = now - date;
         const diffMins = Math.floor(diffMs / 60000);
         
-        if (diffMins < 1) return '刚刚';
-        if (diffMins < 60) return `${diffMins}分钟前`;
-        if (diffMins < 1440) return `${Math.floor(diffMins / 60)}小时前`;
+        if (diffMins < 1) {return '刚刚';}
+        if (diffMins < 60) {return `${diffMins}分钟前`;}
+        if (diffMins < 1440) {return `${Math.floor(diffMins / 60)}小时前`;}
         return date.toLocaleDateString('zh-CN');
     }
 

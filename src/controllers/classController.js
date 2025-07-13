@@ -26,10 +26,10 @@ exports.getAllClasses = async (req, res) => {
   try {
     const { grade, academicYear, classType } = req.query;
     
-    let filter = { isActive: true };
-    if (grade) filter.grade = grade;
-    if (academicYear) filter.academicYear = academicYear;
-    if (classType) filter.classType = classType;
+    const filter = { isActive: true };
+    if (grade) {filter.grade = grade;}
+    if (academicYear) {filter.academicYear = academicYear;}
+    if (classType) {filter.classType = classType;}
     
     const classes = await Class.find(filter)
       .populate('headTeacher', 'name staffId')

@@ -416,7 +416,7 @@ class BulkOperationManager {
    * 发送批量通知
    */
   async sendBatchNotifications(type, documents, context) {
-    if (!documents || documents.length === 0) return;
+    if (!documents || documents.length === 0) {return;}
 
     const notificationData = {
       type: `batch_${type}`,
