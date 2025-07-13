@@ -483,22 +483,18 @@ exports.updateProfile = async (req, res) => {
         safeUpdates[field] = req.body[field];
       }
     });
-      if (req.body[update] !== undefined) {
-        updateData[update] = req.body[update];
-      }
-    });
     
     let user;
     if (req.userType === 'staff') {
       user = await Staff.findByIdAndUpdate(
         req.user.id,
-        updateData,
+        safeUpdates,
         { new: true, runValidators: true }
       ).select('-password');
     } else {
       user = await Student.findByIdAndUpdate(
         req.user.id,
-        updateData,
+        safeUpdates,
         { new: true, runValidators: true }
       );
     }
