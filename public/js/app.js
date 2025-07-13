@@ -80,10 +80,24 @@ const api = {
 
         try {
             const response = await fetch(`${API_BASE}${url}`, options);
-            const result = await response.json();
+            
+            // 检查响应内容类型
+            const contentType = response.headers.get('content-type');
+            let result;
+            
+            if (contentType && contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                // 如果不是JSON，获取文本内容
+                const text = await response.text();
+                result = { 
+                    success: false, 
+                    message: text.includes('<!DOCTYPE') ? '服务器返回了HTML页面，请检查API路径' : text
+                };
+            }
 
             if (!response.ok) {
-                throw new Error(result.message || '请求失败');
+                throw new Error(result.message || `请求失败 (${response.status})`);
             }
 
             return result;
