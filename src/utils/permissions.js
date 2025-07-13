@@ -179,12 +179,11 @@ const RESOURCE_ACCESS_RULES = {
  * @returns {boolean} - 是否拥有权限
  */
 function hasPermission(user, userType, permission) {
-  // 添加调试日志
-  console.log(`[权限检查] User: ${user?.name || user?.studentId || 'unknown'}, UserType: ${userType}, Permission: ${permission}, Role: ${user?.role}`);
+  // 权限检查日志
   
   // 学生没有staff权限
   if (userType === 'student') {
-    console.log(`[权限检查] 学生用户被拒绝访问: ${permission}`);
+    // 学生用户被拒绝访问
     return false;
   }
   
@@ -192,11 +191,11 @@ function hasPermission(user, userType, permission) {
   if (userType === 'staff') {
     const rolePermissions = ROLE_PERMISSIONS[user.role] || [];
     const hasAccess = rolePermissions.includes(permission);
-    console.log(`[权限检查] Staff用户 ${user.role} 权限检查结果: ${hasAccess} (需要: ${permission})`);
+    // Staff用户权限检查结果
     return hasAccess;
   }
   
-  console.log(`[权限检查] 未知用户类型: ${userType}`);
+  // 未知用户类型
   return false;
 }
 

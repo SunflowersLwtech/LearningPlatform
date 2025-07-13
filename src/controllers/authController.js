@@ -460,10 +460,12 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
+    // 定义允许更新的字段
     const allowedUpdates = req.userType === 'staff' 
       ? ['name', 'email', 'contactInfo', 'qualifications']
       : ['contactInfo'];
     
+    // 过滤并验证更新字段
     const updates = Object.keys(req.body);
     const isValidOperation = updates.every(update => allowedUpdates.includes(update));
     
@@ -473,18 +475,30 @@ exports.updateProfile = async (req, res) => {
         message: '包含不允许更新的字段'
       });
     }
+
+    // 创建安全的更新对象，只包含允许的字段
+    const safeUpdates = {};
+    allowedUpdates.forEach(field => {
+      if (req.body[field] !== undefined) {
+        safeUpdates[field] = req.body[field];
+      }
+    });
+      if (req.body[update] !== undefined) {
+        updateData[update] = req.body[update];
+      }
+    });
     
     let user;
     if (req.userType === 'staff') {
       user = await Staff.findByIdAndUpdate(
         req.user.id,
-        req.body,
+        updateData,
         { new: true, runValidators: true }
       ).select('-password');
     } else {
       user = await Student.findByIdAndUpdate(
         req.user.id,
-        req.body,
+        updateData,
         { new: true, runValidators: true }
       );
     }

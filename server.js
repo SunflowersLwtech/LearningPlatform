@@ -7,6 +7,7 @@ const connectDB = require('./config/database');
 const rateLimiter = require('./src/middleware/rateLimiter');
 const { handleUploadError } = require('./src/middleware/upload');
 const { initializeSocket } = require('./src/utils/notifications');
+const { sanitizeInput, securityHeaders } = require('./src/middleware/security');
 
 dotenv.config();
 
@@ -36,6 +37,10 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// 安全中间件
+app.use(securityHeaders());
+app.use(sanitizeInput);
 // 配置静态文件服务
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1d', // 缓存1天

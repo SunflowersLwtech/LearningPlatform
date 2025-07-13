@@ -25,7 +25,7 @@ class NotificationManager {
         this.socket = io();
         
         this.socket.on('connect', () => {
-            console.log('通知系统已连接');
+            // 通知系统已连接
             this.isConnected = true;
             this.reconnectAttempts = 0;
             
@@ -40,7 +40,7 @@ class NotificationManager {
         });
 
         this.socket.on('disconnect', () => {
-            console.log('通知系统已断开连接');
+            // 通知系统已断开连接
             this.isConnected = false;
             this.showConnectionStatus('通知系统连接断开', 'warning');
         });
@@ -60,7 +60,7 @@ class NotificationManager {
     handleReconnect() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
-            console.log(`尝试重连通知系统 (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+            // 尝试重连通知系统
             
             setTimeout(() => {
                 if (this.socket) {
@@ -207,7 +207,9 @@ class NotificationManager {
         }
         
         audio.volume = 0.3;
-        audio.play().catch(e => console.log('无法播放通知声音:', e));
+        audio.play().catch(e => {
+            // 无法播放通知声音
+        });
     }
 
     // 检查是否应该播放声音

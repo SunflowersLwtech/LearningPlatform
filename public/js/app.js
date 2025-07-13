@@ -1,22 +1,22 @@
 // 显示登录模态框
 function showLoginModal() {
-    console.log('showLoginModal 被调用');
+    // 显示登录模态框
     const loginModal = document.getElementById('loginModal');
     if (loginModal) {
         new bootstrap.Modal(loginModal).show();
     } else {
-        console.error('未找到登录模态框元素');
+        // 登录模态框元素未找到
     }
 }
 
 // 显示注册模态框
 function showRegisterModal() {
-    console.log('showRegisterModal 被调用');
+    // 显示注册模态框
     const registerModal = document.getElementById('registerModal');
     if (registerModal) {
         new bootstrap.Modal(registerModal).show();
     } else {
-        console.error('未找到注册模态框元素');
+        // 注册模态框元素未找到
     }
 }
 
@@ -89,7 +89,6 @@ const api = {
 
             return result;
         } catch (error) {
-            console.error('API请求错误:', error);
             showAlert(error.message, 'danger');
             throw error;
         }
@@ -118,7 +117,6 @@ const api = {
 
             return result;
         } catch (error) {
-            console.error('FormData请求错误:', error);
             throw error;
         }
     },
@@ -179,37 +177,35 @@ function initApp() {
 
 // 绑定事件
 function bindEvents() {
-    console.log('开始绑定事件...');
+    // 开始绑定事件
 
     // 登录按钮
     const loginBtn = $('#loginBtn');
     if (loginBtn) {
         loginBtn.addEventListener('click', showLoginModal);
-        console.log('登录按钮事件已绑定');
+        // 登录按钮事件已绑定
     }
 
     // 注册按钮
     const registerBtn = $('#registerBtn');
     if (registerBtn) {
         registerBtn.addEventListener('click', showRegisterModal);
-        console.log('注册按钮事件已绑定');
+        // 注册按钮事件已绑定
     }
 
     // 登录表单
     const loginForm = $('#loginForm');
-    console.log('登录表单元素:', loginForm);
+    // 获取登录表单元素
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
-        console.log('登录表单事件已绑定');
-    } else {
-        console.error('未找到登录表单元素');
+        // 登录表单事件已绑定
     }
 
     // 注册表单
     const registerForm = $('#registerForm');
     if (registerForm) {
         registerForm.addEventListener('submit', handleRegister);
-        console.log('注册表单事件已绑定');
+        // 注册表单事件已绑定
     }
 
     // 注册表单中添加全局函数
@@ -220,7 +216,7 @@ function bindEvents() {
 async function handleLogin(e) {
     e.preventDefault();
 
-    console.log('登录表单提交事件触发');
+    // 登录表单提交事件触发
 
     const formData = {
         identifier: $('#identifier').value,
@@ -228,12 +224,12 @@ async function handleLogin(e) {
         userType: $('#userType').value
     };
 
-    console.log('登录数据:', formData);
+    // 准备登录数据
 
     try {
-        console.log('开始发送登录请求...');
+        // 发送登录请求
         const result = await api.post('/auth/login', formData);
-        console.log('登录响应:', result);
+        // 处理登录响应
 
         // 修复：使用正确的数据结构
         authToken = result.data.accessToken;
@@ -248,8 +244,6 @@ async function handleLogin(e) {
         showDashboard();
         updateNavbar();
     } catch (error) {
-        console.error('登录失败:', error);
-        console.error('错误详情:', error.response);
         showAlert('登录失败：' + (error.response?.data?.message || error.message), 'danger');
     }
 }
@@ -349,7 +343,6 @@ async function handleRegister(e) {
         document.getElementById('registerForm').reset();
         toggleRegistrationFields();
     } catch (error) {
-        console.error('注册失败:', error);
         const errorMessage = error.response?.data?.message || error.message || '注册失败';
         showAlert(errorMessage, 'danger');
     }
@@ -2591,7 +2584,7 @@ async function submitAddStudent() {
             };
         }
         
-        console.log('提交学生数据:', studentData); // 调试信息
+        // 提交学生数据
         
         const response = await api.post('/students', studentData);
         
@@ -2670,7 +2663,7 @@ async function submitAddClass() {
             };
         }
         
-        console.log('提交班级数据:', classData); // 调试信息
+        // 提交班级数据
         
         const response = await api.post('/classes', classData);
         
@@ -2704,7 +2697,7 @@ async function submitAddCourse() {
             return;
         }
         
-        console.log('提交课程数据:', data); // 调试信息
+        // 提交课程数据
         
         const response = await api.post('/courses', data);
         
@@ -2771,7 +2764,7 @@ async function submitAddAssignment(isPublished = false) {
             return;
         }
         
-        console.log('提交作业数据:', data); // 调试信息
+        // 提交作业数据
         
         const response = await api.post('/assignments', data);
         
@@ -2850,7 +2843,7 @@ async function submitCreateDiscussion() {
         if (!data.course) {delete data.course;}
         if (!data.class) {delete data.class;}
         
-        console.log('提交讨论数据:', data); // 调试信息
+        // 提交讨论数据
         
         const response = await api.post('/learning/discussions', data);
         

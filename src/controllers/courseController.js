@@ -4,8 +4,17 @@ const Student = require('../models/Student');
 
 exports.createCourse = async (req, res) => {
   try {
+    // 安全的课程数据提取
+    const { name, subject, description, grade, semester, academicYear, schedule, credits } = req.body;
     const course = new Course({
-      ...req.body,
+      name,
+      subject,
+      description,
+      grade,
+      semester,
+      academicYear,
+      schedule,
+      credits,
       teacher: req.user.id
     });
     await course.save();
@@ -134,9 +143,22 @@ exports.updateCourse = async (req, res) => {
       });
     }
     
+    // 安全的更新数据提取
+    const { name, subject, description, grade, semester, academicYear, schedule, credits } = req.body;
+    const updateData = {
+      name,
+      subject,
+      description,
+      grade,
+      semester,
+      academicYear,
+      schedule,
+      credits
+    };
+    
     const updatedCourse = await Course.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
     

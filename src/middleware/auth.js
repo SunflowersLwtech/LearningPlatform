@@ -279,24 +279,24 @@ exports.filterAccessibleResources = (resourceType) => {
 exports.requireAnyPermission = (...permissions) => {
   return (req, res, next) => {
     try {
-      console.log(`[requireAnyPermission] 用户: ${req.user?.name || req.user?.studentId || 'unknown'}, 用户类型: ${req.userType}, 需要权限: ${permissions.join(', ')}`);
+      // 权限检查日志
       
       const hasAnyPermission = permissions.some(permission => 
         hasPermission(req.user, req.userType, permission)
       );
       
-      console.log(`[requireAnyPermission] 权限检查结果: ${hasAnyPermission}`);
+      // 权限检查结果
       
       if (!hasAnyPermission) {
         const errorMessage = `需要以下任一权限: ${permissions.join(', ')}`;
-        console.log(`[requireAnyPermission] 拒绝访问: ${errorMessage}`);
+        // 拒绝访问
         return sendErrorResponse(res, createError.forbidden(errorMessage));
       }
       
-      console.log(`[requireAnyPermission] 允许访问`);
+      // 允许访问
       next();
     } catch (error) {
-      console.log(`[requireAnyPermission] 错误: ${error.message}`);
+      // 权限检查错误
       return sendErrorResponse(res, createError.internal('权限检查失败'));
     }
   };
