@@ -1,5 +1,5 @@
-// 立即定义全局函数，确保HTML中的onclick可以调用
-window.showLoginModal = function() {
+// 显示登录模态框
+function showLoginModal() {
     console.log('showLoginModal 被调用');
     const loginModal = document.getElementById('loginModal');
     if (loginModal) {
@@ -7,9 +7,10 @@ window.showLoginModal = function() {
     } else {
         console.error('未找到登录模态框元素');
     }
-};
+}
 
-window.showRegisterModal = function() {
+// 显示注册模态框
+function showRegisterModal() {
     console.log('showRegisterModal 被调用');
     const registerModal = document.getElementById('registerModal');
     if (registerModal) {
@@ -17,7 +18,11 @@ window.showRegisterModal = function() {
     } else {
         console.error('未找到注册模态框元素');
     }
-};
+}
+
+// 为了向后兼容，也保持全局定义
+window.showLoginModal = showLoginModal;
+window.showRegisterModal = showRegisterModal;
 
 // 全局变量
 let currentUser = null;
@@ -172,6 +177,20 @@ function initApp() {
 // 绑定事件
 function bindEvents() {
     console.log('开始绑定事件...');
+
+    // 登录按钮
+    const loginBtn = $('#loginBtn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', showLoginModal);
+        console.log('登录按钮事件已绑定');
+    }
+
+    // 注册按钮
+    const registerBtn = $('#registerBtn');
+    if (registerBtn) {
+        registerBtn.addEventListener('click', showRegisterModal);
+        console.log('注册按钮事件已绑定');
+    }
 
     // 登录表单
     const loginForm = $('#loginForm');
