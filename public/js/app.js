@@ -150,12 +150,25 @@ function initApp() {
 
 // 绑定事件
 function bindEvents() {
+    console.log('开始绑定事件...');
+
     // 登录表单
-    $('#loginForm')?.addEventListener('submit', handleLogin);
-    
+    const loginForm = $('#loginForm');
+    console.log('登录表单元素:', loginForm);
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+        console.log('登录表单事件已绑定');
+    } else {
+        console.error('未找到登录表单元素');
+    }
+
     // 注册表单
-    $('#registerForm')?.addEventListener('submit', handleRegister);
-    
+    const registerForm = $('#registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegister);
+        console.log('注册表单事件已绑定');
+    }
+
     // 注册表单中添加全局函数
     window.toggleRegistrationFields = toggleRegistrationFields;
 }
@@ -163,15 +176,21 @@ function bindEvents() {
 // 处理登录
 async function handleLogin(e) {
     e.preventDefault();
-    
+
+    console.log('登录表单提交事件触发');
+
     const formData = {
         identifier: $('#identifier').value,
         password: $('#password').value,
         userType: $('#userType').value
     };
-    
+
+    console.log('登录数据:', formData);
+
     try {
+        console.log('开始发送登录请求...');
         const result = await api.post('/auth/login', formData);
+        console.log('登录响应:', result);
 
         // 修复：使用正确的数据结构
         authToken = result.data.accessToken;
@@ -187,6 +206,7 @@ async function handleLogin(e) {
         updateNavbar();
     } catch (error) {
         console.error('登录失败:', error);
+        console.error('错误详情:', error.response);
         showAlert('登录失败：' + (error.response?.data?.message || error.message), 'danger');
     }
 }
@@ -326,12 +346,12 @@ function logout() {
 }
 
 // 显示登录模态框
-function showLoginModal() {
+window.showLoginModal = function() {
     new bootstrap.Modal($('#loginModal')).show();
 }
 
 // 显示注册模态框
-function showRegisterModal() {
+window.showRegisterModal = function() {
     new bootstrap.Modal($('#registerModal')).show();
 }
 

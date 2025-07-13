@@ -1,9 +1,4 @@
-// 安全HTML处理函数
-const sanitizeHtml = (text) => {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-};
+// 注意：sanitizeHtml函数在app.js中已定义，这里不需要重复声明
 
 // 通知系统客户端
 class NotificationManager {
