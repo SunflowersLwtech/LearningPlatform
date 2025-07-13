@@ -1,11 +1,13 @@
-// 安全HTML处理函数 - 如果app.js未加载则使用本地版本
-function sanitizeHtml(text) {
+// 获取安全HTML处理函数 - 使用全局版本或创建本地版本
+function getSanitizeHtml() {
     if (window.sanitizeHtml && typeof window.sanitizeHtml === 'function') {
-        return window.sanitizeHtml(text);
+        return window.sanitizeHtml;
     }
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return function(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
 }
 
 // 通知系统客户端
@@ -110,7 +112,7 @@ class NotificationManager {
             <div class="d-flex">
                 <div class="toast-body">
                     <i class="${this.getIcon(type)} me-2"></i>
-                    ${sanitizeHtml(message)}
+                    ${getSanitizeHtml()(message)}
                     <small class="d-block text-white-50 mt-1">${this.formatTime(timestamp)}</small>
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
@@ -151,7 +153,7 @@ class NotificationManager {
         if (statusEl) {
             statusEl.className = `alert alert-${type} alert-dismissible fade show`;
             statusEl.innerHTML = `
-                ${sanitizeHtml(message)}
+                ${getSanitizeHtml()(message)}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
         }
