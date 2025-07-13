@@ -4144,20 +4144,32 @@ async function downloadResource(resourceId) {
         });
         
         if (!response.ok) {
-            throw new Error('下载失败');
+            const errorData = await response.json();
+            throw new Error(errorData.message || '下载失败');
+        }
+        
+        // 获取文件名
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `resource_${resourceId}`;
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+            if (filenameMatch && filenameMatch[1]) {
+                filename = decodeURIComponent(filenameMatch[1].replace(/["']/g, ''));
+            }
         }
         
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `resource_${resourceId}`;
+        a.download = filename;
         a.click();
         window.URL.revokeObjectURL(url);
         
         showAlert('资源下载成功', 'success');
     } catch (error) {
-        showAlert('下载资源失败', 'danger');
+        console.error('下载错误:', error);
+        showAlert(`下载资源失败: ${error.message}`, 'danger');
     }
 }
 

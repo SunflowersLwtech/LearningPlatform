@@ -276,7 +276,24 @@ exports.downloadResource = async (req, res) => {
     
     if (resource.fileInfo && resource.fileInfo.filePath) {
       const uploadsDir = path.resolve('./uploads');
-      const requestedPath = path.resolve(uploadsDir, resource.fileInfo.filePath);
+      
+      // 修复文件路径 - 处理重复的uploads前缀和Windows路径分隔符
+      let cleanFilePath = resource.fileInfo.filePath;
+      
+      // 处理Windows路径分隔符
+      cleanFilePath = cleanFilePath.replace(/\\/g, '/');
+      
+      // 移除重复的uploads前缀
+      if (cleanFilePath.startsWith('uploads/')) {
+        cleanFilePath = cleanFilePath.substring('uploads/'.length);
+      }
+      
+      // 确保路径以resources/开头
+      if (!cleanFilePath.startsWith('resources/')) {
+        cleanFilePath = 'resources/' + cleanFilePath;
+      }
+      
+      const requestedPath = path.resolve(uploadsDir, cleanFilePath);
       
       // 强化路径遍历攻击防护
       const normalizedUploadsDir = path.normalize(uploadsDir);
@@ -291,8 +308,8 @@ exports.downloadResource = async (req, res) => {
       }
       
       // 额外检查：禁止包含路径遍历字符
-      if (resource.fileInfo.filePath.includes('..') || resource.fileInfo.filePath.includes('~')) {
-        console.warn(`检测到可疑路径字符: ${resource.fileInfo.filePath}`);
+      if (cleanFilePath.includes('..') || cleanFilePath.includes('~')) {
+        console.warn(`检测到可疑路径字符: ${cleanFilePath}`);
         return res.status(403).json({
           success: false,
           message: '文件路径包含非法字符'
@@ -300,6 +317,8 @@ exports.downloadResource = async (req, res) => {
       }
       
       const filePath = normalizedRequestedPath;
+      
+      console.log(`资源下载调试: 原始路径=${resource.fileInfo.filePath}, 清理后=${cleanFilePath}, 最终路径=${filePath}`);
       
       if (fs.existsSync(filePath)) {
         // 增加下载计数
