@@ -172,7 +172,9 @@ exports.getStudentById = async (req, res) => {
     
     res.json({
       success: true,
-      data: student
+      data: {
+        student: student
+      }
     });
   } catch (error) {
     res.status(500).json({

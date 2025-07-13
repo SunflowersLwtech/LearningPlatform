@@ -69,14 +69,44 @@ exports.getClassById = async (req, res) => {
     res.json({
       success: true,
       data: {
-        ...classData.toObject(),
-        students
+        class: {
+          ...classData.toObject(),
+          students
+        }
       }
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: '获取班级信息失败',
+      error: error.message
+    });
+  }
+};
+
+exports.getClassStudents = async (req, res) => {
+  try {
+    const classData = await Class.findById(req.params.id);
+    
+    if (!classData) {
+      return res.status(404).json({
+        success: false,
+        message: '班级不存在'
+      });
+    }
+    
+    const students = await Student.find({ class: req.params.id })
+      .select('studentId name gender enrollmentStatus dateOfBirth phone email')
+      .sort({ name: 1 });
+    
+    res.json({
+      success: true,
+      data: students
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: '获取班级学生失败',
       error: error.message
     });
   }

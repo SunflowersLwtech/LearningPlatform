@@ -24,6 +24,7 @@ router.post('/login', validateLogin, handleValidationErrors, login);
 router.post('/register', validateRegister, handleValidationErrors, register);
 
 // 用户资料相关
+router.get('/me', authenticate, getProfile); // 添加/me端点作为/profile的别名
 router.get('/profile', authenticate, getProfile);
 router.put('/profile', authenticate, updateProfile);
 router.put('/change-password', authenticate, changePassword);

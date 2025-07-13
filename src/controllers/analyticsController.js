@@ -432,6 +432,194 @@ exports.getAttendanceAnalytics = async (req, res) => {
   }
 };
 
+// 学生统计
+exports.getStudentStats = async (req, res) => {
+  try {
+    const Student = require('../models/Student');
+    const Class = require('../models/Class');
+    
+    const totalStudents = await Student.countDocuments({ isActive: true });
+    const maleStudents = await Student.countDocuments({ gender: 'male', isActive: true });
+    const femaleStudents = await Student.countDocuments({ gender: 'female', isActive: true });
+    
+    const gradeStats = await Student.aggregate([
+      { $match: { isActive: true } },
+      { $group: { _id: '$grade', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        total: totalStudents,
+        male: maleStudents,
+        female: femaleStudents,
+        byGrade: gradeStats
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: '获取学生统计失败',
+      error: error.message
+    });
+  }
+};
+
+// 班级统计
+exports.getClassStats = async (req, res) => {
+  try {
+    const Class = require('../models/Class');
+    const Student = require('../models/Student');
+    
+    const totalClasses = await Class.countDocuments({ isActive: true });
+    
+    const classStats = await Class.aggregate([
+      { $match: { isActive: true } },
+      { $lookup: {
+          from: 'students',
+          localField: '_id',
+          foreignField: 'class',
+          as: 'students'
+        }
+      },
+      { $project: {
+          name: 1,
+          grade: 1,
+          capacity: 1,
+          currentEnrollment: { $size: '$students' },
+          occupancyRate: {
+            $multiply: [
+              { $divide: [{ $size: '$students' }, '$capacity'] },
+              100
+            ]
+          }
+        }
+      }
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        total: totalClasses,
+        classes: classStats
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: '获取班级统计失败',
+      error: error.message
+    });
+  }
+};
+
+// 作业统计
+exports.getAssignmentStats = async (req, res) => {
+  try {
+    const Assignment = require('../models/Assignment');
+    const Submission = require('../models/Submission');
+    
+    const totalAssignments = await Assignment.countDocuments({ isPublished: true });
+    const overdueAssignments = await Assignment.countDocuments({
+      isPublished: true,
+      dueDate: { $lt: new Date() }
+    });
+    
+    const submissionStats = await Submission.aggregate([
+      { $group: {
+          _id: '$assignment',
+          submissionCount: { $sum: 1 },
+          avgScore: { $avg: '$grade.percentage' },
+          onTimeSubmissions: {
+            $sum: {
+              $cond: [{ $lte: ['$submittedAt', '$dueDate'] }, 1, 0]
+            }
+          }
+        }
+      }
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        total: totalAssignments,
+        overdue: overdueAssignments,
+        submissions: submissionStats
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: '获取作业统计失败',
+      error: error.message
+    });
+  }
+};
+
+// 性能分析
+exports.getPerformanceAnalytics = async (req, res) => {
+  try {
+    const Grade = require('../models/Grade');
+    const Student = require('../models/Student');
+    
+    const performanceData = await Grade.aggregate([
+      { $group: {
+          _id: '$student',
+          avgGrade: { $avg: '$percentage' },
+          totalCredits: { $sum: '$credits' },
+          gradeCount: { $sum: 1 }
+        }
+      },
+      { $lookup: {
+          from: 'students',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'student'
+        }
+      },
+      { $unwind: '$student' },
+      { $project: {
+          studentName: '$student.name',
+          studentId: '$student.studentId',
+          grade: '$student.grade',
+          avgGrade: 1,
+          totalCredits: 1,
+          gradeCount: 1
+        }
+      },
+      { $sort: { avgGrade: -1 } }
+    ]);
+    
+    const gradeDistribution = await Grade.aggregate([
+      { $bucket: {
+          groupBy: '$percentage',
+          boundaries: [0, 60, 70, 80, 90, 100],
+          default: 'Other',
+          output: {
+            count: { $sum: 1 },
+            avgScore: { $avg: '$percentage' }
+          }
+        }
+      }
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        studentPerformance: performanceData,
+        gradeDistribution: gradeDistribution
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: '获取性能分析失败',
+      error: error.message
+    });
+  }
+};
+
 exports.getStats = async (req, res) => {
   try {
     // 获取基础统计数据

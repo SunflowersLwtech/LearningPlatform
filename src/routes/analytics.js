@@ -5,7 +5,11 @@ const {
   generateClassReport,
   getGradeDistribution,
   getAttendanceAnalytics,
-  getStats
+  getStats,
+  getStudentStats,
+  getClassStats,
+  getAssignmentStats,
+  getPerformanceAnalytics
 } = require('../controllers/analyticsController');
 
 const router = express.Router();
@@ -15,6 +19,10 @@ router.use(authorize('admin', 'principal', 'director', 'head_teacher', 'teacher'
 router.use(checkPermission('canAccessReports'));
 
 router.get('/stats', getStats);
+router.get('/students/stats', getStudentStats);
+router.get('/classes/stats', getClassStats);
+router.get('/assignments/stats', getAssignmentStats);
+router.get('/performance', getPerformanceAnalytics);
 router.get('/student/:studentId/report', generateStudentReport);
 router.get('/class/:classId/report', generateClassReport);
 router.get('/grade-distribution', getGradeDistribution);

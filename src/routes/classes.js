@@ -4,6 +4,7 @@ const {
   createClass,
   getAllClasses,
   getClassById,
+  getClassStudents,
   updateClass,
   updateSchedule,
   assignTeacher,
@@ -37,6 +38,11 @@ router.put('/:id/assign-teacher',
 router.get('/:id/schedule',
   authorize('admin', 'principal', 'director', 'head_teacher', 'teacher', 'student'),
   getClassSchedule
+);
+
+router.get('/:id/students',
+  authorize('admin', 'principal', 'director', 'head_teacher', 'teacher'),
+  getClassStudents
 );
 
 module.exports = router;
