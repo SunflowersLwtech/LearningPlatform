@@ -76,11 +76,21 @@ exports.authorize = (...roles) => {
 
 // 新的增强权限检查中间件
 exports.checkPermission = (permission) => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     try {
-      if (!hasPermission(req.user, req.userType, permission)) {
-        const errorMessage = getPermissionError(permission, req.user?.role || req.userType);
-        return sendErrorResponse(res, createError.forbidden(errorMessage));
+      // 检查是否为模型属性权限
+      if (permission.startsWith('can') && req.userType === 'staff') {
+        // 检查用户的模型属性权限
+        if (!req.user.permissions || !req.user.permissions[permission]) {
+          const errorMessage = `缺少权限: ${permission}`;
+          return sendErrorResponse(res, createError.forbidden(errorMessage));
+        }
+      } else {
+        // 检查常量定义的权限
+        if (!hasPermission(req.user, req.userType, permission)) {
+          const errorMessage = getPermissionError(permission, req.user?.role || req.userType);
+          return sendErrorResponse(res, createError.forbidden(errorMessage));
+        }
       }
       
       next();

@@ -122,6 +122,11 @@ exports.getAllPermissions = async (req, res) => {
  */
 exports.getRolePermissions = async (req, res) => {
   try {
+    // 额外的安全检查 - 学生不能访问角色权限配置
+    if (req.userType === 'student') {
+      return sendErrorResponse(res, createError.forbidden('学生无权访问角色权限配置'));
+    }
+    
     const roleConfigurations = {
       admin: {
         label: '系统管理员',
@@ -172,6 +177,23 @@ exports.getRolePermissions = async (req, res) => {
  */
 exports.getUserPermissions = async (req, res) => {
   try {
+    // 学生只能查看自己的权限信息（尽管他们没有任何staff权限）
+    if (req.userType === 'student') {
+      const permissions = getUserPermissions(req.user, 'student');
+      
+      const userPermissionInfo = {
+        userId: req.user._id,
+        name: req.user.name,
+        studentId: req.user.studentId,
+        userType: 'student',
+        permissions, // 这将是一个空数组
+        message: '学生用户没有系统管理权限'
+      };
+      
+      return sendSuccessResponse(res, userPermissionInfo, '获取用户权限成功');
+    }
+    
+    // 对于staff用户的处理
     const userId = req.params.userId || req.user._id;
     
     // 确保只有高级管理员才能查看其他用户的权限

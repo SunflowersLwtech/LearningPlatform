@@ -410,7 +410,7 @@ exports.getStudentGPA = async (req, res) => {
     const { academicYear, semester } = req.query;
     
     // 权限检查：学生只能查看自己的GPA
-    if (req.userType === 'student' && req.user.id !== id) {
+    if (req.userType === 'student' && req.user._id.toString() !== id) {
       return res.status(403).json({
         success: false,
         message: '只能查看自己的GPA'
