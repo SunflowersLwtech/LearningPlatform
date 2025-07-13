@@ -1,150 +1,148 @@
 {
   "summary": {
     "total": 19,
-    "passed": 18,
-    "failed": 1,
-    "passRate": "94.7%",
-    "timestamp": "2025-07-13T04:31:44.490Z"
+    "passed": 19,
+    "failed": 0,
+    "passRate": "100.0%",
+    "timestamp": "2025-07-13T06:16:49.736Z"
   },
   "details": [
     {
       "test": "服务器连接",
       "success": true,
-      "details": "响应时间: 14ms",
-      "timestamp": "2025-07-13T04:31:44.178Z",
+      "details": "响应时间: 19ms",
+      "timestamp": "2025-07-13T06:16:49.339Z",
       "status": 200,
-      "responseTime": 14
+      "responseTime": 19
     },
     {
       "test": "管理员登录",
       "success": true,
       "details": "获取访问令牌成功",
-      "timestamp": "2025-07-13T04:31:44.245Z",
+      "timestamp": "2025-07-13T06:16:49.410Z",
       "status": 200
     },
     {
       "test": "学生登录",
       "success": true,
       "details": "获取访问令牌成功",
-      "timestamp": "2025-07-13T04:31:44.312Z",
+      "timestamp": "2025-07-13T06:16:49.480Z",
       "status": 200
     },
     {
       "test": "教师登录",
       "success": true,
       "details": "获取访问令牌成功",
-      "timestamp": "2025-07-13T04:31:44.376Z",
+      "timestamp": "2025-07-13T06:16:49.549Z",
       "status": 200
     },
     {
       "test": "无效凭据拒绝",
       "success": true,
       "details": "正确拒绝无效登录",
-      "timestamp": "2025-07-13T04:31:44.384Z",
+      "timestamp": "2025-07-13T06:16:49.555Z",
       "status": 401
     },
     {
       "test": "学生权限限制",
-      "success": false,
-      "details": "学生不应能访问管理功能",
-      "timestamp": "2025-07-13T04:31:44.390Z",
-      "status": 200
+      "success": true,
+      "details": "正确拒绝学生访问管理功能",
+      "timestamp": "2025-07-13T06:16:49.563Z",
+      "status": 403
     },
     {
       "test": "管理员权限访问",
       "success": true,
       "details": "管理员可以访问权限管理",
-      "timestamp": "2025-07-13T04:31:44.394Z",
+      "timestamp": "2025-07-13T06:16:49.569Z",
       "status": 200
     },
     {
       "test": "获取学生列表",
       "success": true,
       "details": "获取到 5 个学生",
-      "timestamp": "2025-07-13T04:31:44.403Z",
+      "timestamp": "2025-07-13T06:16:49.593Z",
       "status": 200
     },
     {
       "test": "获取班级列表",
       "success": true,
       "details": "班级列表获取成功",
-      "timestamp": "2025-07-13T04:31:44.410Z",
+      "timestamp": "2025-07-13T06:16:49.604Z",
       "status": 200
     },
     {
       "test": "获取课程列表",
       "success": true,
       "details": "课程列表获取成功",
-      "timestamp": "2025-07-13T04:31:44.418Z",
+      "timestamp": "2025-07-13T06:16:49.617Z",
       "status": 200
     },
     {
       "test": "头像上传",
       "success": true,
       "details": "头像上传成功",
-      "timestamp": "2025-07-13T04:31:44.427Z",
+      "timestamp": "2025-07-13T06:16:49.631Z",
       "status": 200
     },
     {
       "test": "实时功能测试",
       "success": true,
       "details": "WebSocket功能需要前端客户端测试",
-      "timestamp": "2025-07-13T04:31:44.427Z"
+      "timestamp": "2025-07-13T06:16:49.632Z"
     },
     {
       "test": "数据一致性检查",
       "success": true,
       "details": "数据一致性良好",
-      "timestamp": "2025-07-13T04:31:44.452Z",
+      "timestamp": "2025-07-13T06:16:49.682Z",
       "status": 200
     },
     {
       "test": "SQL注入防护",
       "success": true,
       "details": "服务器正确处理了恶意查询",
-      "timestamp": "2025-07-13T04:31:44.457Z",
+      "timestamp": "2025-07-13T06:16:49.692Z",
       "status": 200
     },
     {
       "test": "XSS防护",
       "success": true,
       "details": "服务器正确处理了恶意脚本",
-      "timestamp": "2025-07-13T04:31:44.462Z",
+      "timestamp": "2025-07-13T06:16:49.698Z",
       "status": 200
     },
     {
       "test": "路径遍历防护",
       "success": true,
       "details": "正确阻止了路径遍历攻击",
-      "timestamp": "2025-07-13T04:31:44.463Z",
+      "timestamp": "2025-07-13T06:16:49.699Z",
       "status": 404
     },
     {
       "test": "获取学生列表性能",
       "success": true,
-      "details": "响应时间: 16ms",
-      "timestamp": "2025-07-13T04:31:44.479Z",
+      "details": "响应时间: 23ms",
+      "timestamp": "2025-07-13T06:16:49.722Z",
       "status": 200,
-      "responseTime": 16
+      "responseTime": 23
     },
     {
       "test": "获取课程列表性能",
       "success": true,
-      "details": "响应时间: 8ms",
-      "timestamp": "2025-07-13T04:31:44.487Z",
+      "details": "响应时间: 9ms",
+      "timestamp": "2025-07-13T06:16:49.732Z",
       "status": 200,
-      "responseTime": 8
+      "responseTime": 9
     },
     {
       "test": "获取分析数据性能",
       "success": true,
-      "details": "响应时间: 3ms",
-      "timestamp": "2025-07-13T04:31:44.490Z",
-      "status": 403,
-      "responseTime": 3
+      "details": "响应时间: 4ms",
+      "timestamp": "2025-07-13T06:16:49.736Z",
+      "status": 404,
+      "responseTime": 4
     }
   ],
-  "recommendations": [
-    "存在失败的测试，请检查相关功能"
-  ]
+  "recommendations": []
 }

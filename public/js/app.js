@@ -43,6 +43,34 @@ const api = {
         }
     },
 
+    async postFormData(url, formData) {
+        const options = {
+            method: 'POST',
+            headers: {}
+        };
+
+        if (authToken) {
+            options.headers.Authorization = `Bearer ${authToken}`;
+        }
+
+        // 不设置Content-Type，让浏览器自动设置multipart/form-data
+        options.body = formData;
+
+        try {
+            const response = await fetch(`${API_BASE}${url}`, options);
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || '请求失败');
+            }
+
+            return result;
+        } catch (error) {
+            console.error('FormData请求错误:', error);
+            throw error;
+        }
+    },
+
     get(url) { return this.request('GET', url); },
     post(url, data) { return this.request('POST', url, data); },
     put(url, data) { return this.request('PUT', url, data); },
@@ -118,20 +146,22 @@ async function handleLogin(e) {
     
     try {
         const result = await api.post('/auth/login', formData);
-        
-        authToken = result.token;
-        currentUser = result.user;
-        
+
+        // 修复：使用正确的数据结构
+        authToken = result.data.accessToken;
+        currentUser = result.data.user;
+
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        
+
         bootstrap.Modal.getInstance($('#loginModal')).hide();
-        
+
         showAlert('登录成功！', 'success');
         showDashboard();
         updateNavbar();
     } catch (error) {
         console.error('登录失败:', error);
+        showAlert('登录失败：' + (error.response?.data?.message || error.message), 'danger');
     }
 }
 
@@ -169,7 +199,7 @@ function updateNavbar() {
         $('#welcomeSection').classList.add('d-none');
         
         // 根据用户类型显示/隐藏菜单项
-        if (currentUser.role === 'student') {
+        if (currentUser.userType === 'student') {
             $$('.staff-only').forEach(item => item.classList.add('d-none'));
         }
     } else {
@@ -206,26 +236,28 @@ function showRegisterModal() {
 // 显示仪表板
 async function showDashboard() {
     if (!currentUser) return;
-    
+
     $('#dashboardContent').classList.remove('d-none');
     showLoading('#dashboardContent');
-    
+
     try {
         let dashboardHtml = '';
-        
-        if (currentUser.role === 'student') {
+
+        // 修复：使用userType字段来判断用户类型
+        if (currentUser.userType === 'student') {
             const data = await api.get('/learning/dashboard');
             dashboardHtml = renderStudentDashboard(data.data);
         } else {
             dashboardHtml = renderStaffDashboard();
         }
-        
+
         $('#dashboardContent').innerHTML = dashboardHtml;
-        
+
         // 设置活动导航
         setActiveNav('仪表板');
     } catch (error) {
-        $('#dashboardContent').innerHTML = '<div class="alert alert-danger">加载仪表板失败</div>';
+        console.error('加载仪表板失败:', error);
+        $('#dashboardContent').innerHTML = '<div class="alert alert-danger">加载仪表板失败: ' + (error.message || '未知错误') + '</div>';
     }
 }
 
@@ -1109,7 +1141,7 @@ function showProfile() {
     setActiveNav('个人资料');
     showLoading('#dashboardContent');
     
-    const userType = currentUser?.role ? 'staff' : 'student';
+    const userType = currentUser?.userType === 'staff' ? 'staff' : 'student';
     
     $('#dashboardContent').innerHTML = `
         <div class="row">
@@ -1210,7 +1242,7 @@ function showProfile() {
 
 // 编辑个人资料
 function editProfile() {
-    const userType = currentUser?.role ? 'staff' : 'student';
+    const userType = currentUser?.userType === 'staff' ? 'staff' : 'student';
     
     cleanupModal('editProfileModal');
     const modalHtml = `
@@ -1277,8 +1309,8 @@ async function submitProfileEdit() {
         const formData = new FormData(form);
         const data = Object.fromEntries(formData);
         
-        const userType = currentUser?.role ? 'staff' : 'students';
-        const endpoint = `/${userType}/${currentUser._id}`;
+        const userType = currentUser?.userType === 'staff' ? 'staff' : 'students';
+        const endpoint = userType === 'staff' ? `/staff/${currentUser.id}` : `/students/me`;
         
         const response = await api.put(endpoint, data);
         
@@ -4192,13 +4224,15 @@ async function viewDiscussion(discussionId) {
                             ${!discussion.isLocked ? `
                                 <div class="new-post mt-4">
                                     <h6>参与讨论</h6>
-                                    <form id="newPostForm">
+                                    <form id="newPostForm" enctype="multipart/form-data">
                                         <div class="mb-3">
                                             <textarea class="form-control" name="content" rows="3" placeholder="写下你的观点..." required></textarea>
                                         </div>
                                         <div class="mb-3">
-                                            <input type="file" class="form-control" name="attachments" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
-                                            <div class="form-text">可选：上传图片或文档作为附件</div>
+                                            <label class="form-label">附件 (可选)</label>
+                                            <input type="file" class="form-control" name="attachments" multiple
+                                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt,.zip,.rar">
+                                            <small class="text-muted">支持上传图片、文档等文件，最多3个文件，每个文件不超过10MB</small>
                                         </div>
                                     </form>
                                 </div>
@@ -4694,19 +4728,37 @@ async function submitNewPost(discussionId) {
     try {
         const form = $('#newPostForm');
         const formData = new FormData(form);
-        
-        const postData = {
-            content: formData.get('content'),
-            attachments: [] // 暂时不处理附件上传
-        };
-        
-        await api.post(`/learning/discussions/${discussionId}/participate`, postData);
-        
+
+        // 验证内容
+        const content = formData.get('content');
+        if (!content || content.trim() === '') {
+            showAlert('请输入回复内容', 'warning');
+            return;
+        }
+
+        // 验证文件大小和数量
+        const files = form.querySelector('input[name="attachments"]').files;
+        if (files.length > 3) {
+            showAlert('最多只能上传3个文件', 'warning');
+            return;
+        }
+
+        for (let file of files) {
+            if (file.size > 10 * 1024 * 1024) { // 10MB
+                showAlert(`文件 ${file.name} 超过10MB限制`, 'warning');
+                return;
+            }
+        }
+
+        // 使用FormData直接发送，包含文件
+        await api.postFormData(`/learning/discussions/${discussionId}/participate`, formData);
+
         showAlert('回复发表成功', 'success');
         // 重新加载讨论详情
         viewDiscussion(discussionId);
     } catch (error) {
-        showAlert('发表回复失败', 'danger');
+        console.error('发表回复失败:', error);
+        showAlert('发表回复失败: ' + (error.message || '未知错误'), 'danger');
     }
 }
 

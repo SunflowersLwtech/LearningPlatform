@@ -84,11 +84,14 @@ exports.createStudent = async (req, res) => {
 
 exports.getAllStudents = async (req, res) => {
   try {
-    const { page = 1, limit = 20, grade, class: classId, search } = req.query;
-    
+    const { page = 1, limit = 20, grade, class: classId, search, gender } = req.query;
+
     let filter = {};
     if (grade) filter.grade = grade;
     if (classId) filter.class = classId;
+    if (gender && ['male', 'female'].includes(gender)) {
+      filter.gender = gender;
+    }
     if (search) {
       // 更严格的搜索字符串验证
       if (typeof search !== 'string') {
@@ -108,10 +111,24 @@ exports.getAllStudents = async (req, res) => {
       
       // 使用更安全的精确匹配而不是正则表达式
       const searchTerm = search.trim();
-      filter.$or = [
+      const searchConditions = [
         { name: { $regex: `^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' } },
-        { studentId: { $regex: `^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' } }
+        { studentId: { $regex: `^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' } },
+        { 'contactInfo.email': { $regex: `^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' } }
       ];
+
+      // 如果搜索词匹配性别或年级，添加精确匹配
+      if (searchTerm.toLowerCase() === 'male' || searchTerm === '男') {
+        searchConditions.push({ gender: 'male' });
+      }
+      if (searchTerm.toLowerCase() === 'female' || searchTerm === '女') {
+        searchConditions.push({ gender: 'female' });
+      }
+      if (searchTerm.includes('大') || searchTerm.includes('年级')) {
+        searchConditions.push({ grade: { $regex: searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } });
+      }
+
+      filter.$or = searchConditions;
     }
     
     const students = await Student.find(filter)
@@ -569,6 +586,47 @@ exports.getClassGPARanking = async (req, res) => {
     res.status(500).json({
       success: false,
       message: '获取班级GPA排名失败',
+      error: error.message
+    });
+  }
+};
+
+// 获取当前学生信息
+exports.getCurrentStudent = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const student = await Student.findById(studentId)
+      .populate('class', 'name grade capacity currentEnrollment')
+      .select('-password');
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: '学生信息不存在'
+      });
+    }
+
+    // 简化统计信息，避免复杂查询
+    const stats = {
+      enrollmentStatus: student.enrollmentStatus,
+      grade: student.grade,
+      className: student.class ? student.class.name : '未分配班级'
+    };
+
+    res.json({
+      success: true,
+      message: '获取学生信息成功',
+      data: {
+        ...student.toObject(),
+        stats
+      }
+    });
+  } catch (error) {
+    console.error('获取当前学生信息失败:', error);
+    res.status(400).json({
+      success: false,
+      message: '获取学生信息失败',
       error: error.message
     });
   }

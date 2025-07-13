@@ -80,7 +80,9 @@ exports.validateCredentials = async (req, res) => {
     }
     
     // 检查是否为学生
-    const student = await Student.findOne({ studentId: identifier }).select('+password');
+    const isEmail = identifier.includes('@');
+    const studentQuery = isEmail ? { 'contactInfo.email': identifier } : { studentId: identifier };
+    const student = await Student.findOne(studentQuery).select('+password');
     
     if (student && await bcrypt.compare(password, student.password)) {
       if (student.enrollmentStatus !== 'enrolled') {
@@ -223,7 +225,10 @@ exports.login = async (req, res) => {
       identifierField = identifier.includes('@') ? 'email' : 'staffId';
       user = await Staff.findOne({ [identifierField]: identifier }).select('+password');
     } else if (userType === 'student') {
-      user = await Student.findOne({ studentId: identifier }).select('+password');
+      // 支持学号或邮箱登录
+      const isEmail = identifier.includes('@');
+      const query = isEmail ? { 'contactInfo.email': identifier } : { studentId: identifier };
+      user = await Student.findOne(query).select('+password');
       if (!user) {
         return sendErrorResponse(res, createError.unauthorized('学生账号不存在或密码错误'));
       }
@@ -300,58 +305,132 @@ exports.login = async (req, res) => {
 exports.register = async (req, res) => {
   try {
     const { userType } = req.body;
-    
+
     if (userType === 'staff') {
-      const { name, email, password, staffId, role, department } = req.body;
-      
+      const { name, email, password, staffId, role, department, phone } = req.body;
+
+      // 验证必填字段
+      if (!name || !email || !password || !staffId || !role) {
+        return res.status(400).json({
+          success: false,
+          message: '请填写所有必填字段：姓名、邮箱、密码、工号、角色'
+        });
+      }
+
       const existingStaff = await Staff.findOne({
         $or: [{ email }, { staffId }]
       });
-      
+
       if (existingStaff) {
         return res.status(400).json({
           success: false,
           message: '邮箱或工号已存在'
         });
       }
-      
+
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
-      
+
       const staff = new Staff({
         name,
         email,
         password: hashedPassword,
         staffId,
         role,
-        department
+        department: department || '未分配',
+        phone: phone || ''
       });
-      
+
       await staff.save();
-      
+
       const { accessToken, refreshToken } = generateTokenPair(staff._id, 'staff');
-      
+
       res.status(201).json({
         success: true,
         message: '教职工注册成功',
-        accessToken,
-        refreshToken,
-        user: {
-          id: staff._id,
-          name: staff.name,
-          staffId: staff.staffId,
-          email: staff.email,
-          role: staff.role,
-          department: staff.department
+        data: {
+          accessToken,
+          refreshToken,
+          user: {
+            id: staff._id,
+            name: staff.name,
+            staffId: staff.staffId,
+            email: staff.email,
+            userType: 'staff',
+            role: staff.role,
+            department: staff.department
+          }
+        }
+      });
+    } else if (userType === 'student') {
+      const { name, email, password, studentId, grade, gender, phone, dateOfBirth } = req.body;
+
+      // 验证必填字段
+      if (!name || !email || !password || !studentId || !grade || !gender) {
+        return res.status(400).json({
+          success: false,
+          message: '请填写所有必填字段：姓名、邮箱、密码、学号、年级、性别'
+        });
+      }
+
+      const existingStudent = await Student.findOne({
+        $or: [{ 'contactInfo.email': email }, { studentId }]
+      });
+
+      if (existingStudent) {
+        return res.status(400).json({
+          success: false,
+          message: '邮箱或学号已存在'
+        });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      const student = new Student({
+        name,
+        password: hashedPassword,
+        studentId,
+        grade,
+        gender,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : new Date('2000-01-01'),
+        contactInfo: {
+          email: email,
+          phone: phone || ''
+        },
+        enrollmentStatus: 'enrolled'
+      });
+
+      await student.save();
+
+      const { accessToken, refreshToken } = generateTokenPair(student._id, 'student');
+
+      res.status(201).json({
+        success: true,
+        message: '学生注册成功',
+        data: {
+          accessToken,
+          refreshToken,
+          user: {
+            id: student._id,
+            name: student.name,
+            studentId: student.studentId,
+            email: student.contactInfo?.email,
+            userType: 'student',
+            role: 'student',
+            grade: student.grade,
+            gender: student.gender
+          }
         }
       });
     } else {
       return res.status(400).json({
         success: false,
-        message: '学生账号需要管理员创建'
+        message: '无效的用户类型'
       });
     }
   } catch (error) {
+    console.error('注册错误:', error);
     res.status(400).json({
       success: false,
       message: '注册失败',

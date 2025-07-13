@@ -58,6 +58,57 @@ exports.validateStudentCreate = [
     .withMessage('班级ID格式不正确')
 ];
 
+// 通用注册验证
+exports.validateRegister = [
+  body('userType')
+    .isIn(['staff', 'student'])
+    .withMessage('用户类型必须是staff或student'),
+  body('name')
+    .notEmpty()
+    .withMessage('姓名不能为空')
+    .trim(),
+  body('email')
+    .isEmail()
+    .withMessage('邮箱格式不正确')
+    .normalizeEmail(),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('密码至少6位'),
+  body('confirmPassword')
+    .custom((value, { req }) => {
+      if (value !== req.body.password) {
+        throw new Error('确认密码与密码不匹配');
+      }
+      return true;
+    }),
+
+  // 条件验证：如果是员工，验证员工字段
+  body('staffId')
+    .if(body('userType').equals('staff'))
+    .notEmpty()
+    .withMessage('工号不能为空')
+    .trim(),
+  body('role')
+    .if(body('userType').equals('staff'))
+    .isIn(['principal', 'vice_principal', 'director', 'head_teacher', 'teacher', 'admin'])
+    .withMessage('角色不正确'),
+
+  // 条件验证：如果是学生，验证学生字段
+  body('studentId')
+    .if(body('userType').equals('student'))
+    .notEmpty()
+    .withMessage('学号不能为空')
+    .trim(),
+  body('grade')
+    .if(body('userType').equals('student'))
+    .notEmpty()
+    .withMessage('年级不能为空'),
+  body('gender')
+    .if(body('userType').equals('student'))
+    .isIn(['male', 'female'])
+    .withMessage('性别必须是male或female')
+];
+
 exports.validateStaffCreate = [
   body('staffId')
     .notEmpty()

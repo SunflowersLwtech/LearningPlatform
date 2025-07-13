@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticate, authorize } = require('../middleware/auth');
+const { validateAssignmentCreate, handleValidationErrors } = require('../middleware/validation');
 const {
   createAssignment,
   getAllAssignments,
@@ -17,7 +18,12 @@ router.use(authenticate);
 
 router.route('/')
   .get(getAllAssignments)
-  .post(authorize('admin', 'principal', 'director', 'head_teacher', 'teacher'), createAssignment);
+  .post(
+    authorize('admin', 'principal', 'director', 'head_teacher', 'teacher'),
+    validateAssignmentCreate,
+    handleValidationErrors,
+    createAssignment
+  );
 
 router.route('/:id')
   .get(getAssignmentById)

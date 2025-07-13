@@ -47,11 +47,10 @@ const discussionSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    attachments: [{
-      name: String,
-      url: String,
-      type: String
-    }],
+    attachments: {
+      type: mongoose.Schema.Types.Mixed,
+      default: []
+    },
     likes: [{
       user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -80,6 +79,10 @@ const discussionSchema = new mongoose.Schema({
       content: {
         type: String,
         required: true
+      },
+      attachments: {
+        type: mongoose.Schema.Types.Mixed,
+        default: []
       },
       date: {
         type: Date,

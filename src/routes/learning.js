@@ -34,6 +34,9 @@ router.get('/resources/:id/download', downloadResource);
 router.get('/discussions', getDiscussions);
 router.get('/discussions/:id', getDiscussionById);
 router.post('/discussions', createDiscussion);
-router.post('/discussions/:discussionId/participate', participateInDiscussion);
+router.post('/discussions/:discussionId/participate',
+  uploadMiddleware.multiple('attachments', 3),
+  participateInDiscussion
+);
 
 module.exports = router;

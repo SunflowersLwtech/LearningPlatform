@@ -1,6 +1,6 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth');
-const { validateLogin, validateStaffCreate, handleValidationErrors } = require('../middleware/validation');
+const { validateLogin, validateRegister, validateStaffCreate, handleValidationErrors } = require('../middleware/validation');
 const { uploadMiddleware, handleUploadError } = require('../middleware/upload');
 const {
   login,
@@ -21,7 +21,7 @@ const router = express.Router();
 router.get('/roles', getAvailableRoles);
 router.post('/validate-credentials', validateCredentials);
 router.post('/login', validateLogin, handleValidationErrors, login);
-router.post('/register', validateStaffCreate, handleValidationErrors, register);
+router.post('/register', validateRegister, handleValidationErrors, register);
 
 // 用户资料相关
 router.get('/profile', authenticate, getProfile);

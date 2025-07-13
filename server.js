@@ -18,13 +18,49 @@ connectDB();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+// 配置静态文件服务
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d', // 缓存1天
+  etag: true
+}));
+
+// 配置根目录的静态文件服务（用于测试文件）
+app.use(express.static(__dirname, {
+  maxAge: '1h',
+  etag: true
+}));
+
+// 配置uploads目录的静态服务，支持所有文件类型
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '7d', // 上传文件缓存7天
+  etag: true,
+  setHeaders: (res, path) => {
+    // 设置正确的MIME类型
+    if (path.endsWith('.pdf')) {
+      res.setHeader('Content-Type', 'application/pdf');
+    } else if (path.endsWith('.doc') || path.endsWith('.docx')) {
+      res.setHeader('Content-Type', 'application/msword');
+    } else if (path.endsWith('.txt')) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    } else if (path.endsWith('.png')) {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+      res.setHeader('Content-Type', 'image/jpeg');
+    } else if (path.endsWith('.gif')) {
+      res.setHeader('Content-Type', 'image/gif');
+    }
+
+    // 允许跨域访问
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+}));
 app.use(rateLimiter());
 
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/permissions', require('./src/routes/permissions'));
 app.use('/api/data-maintenance', require('./src/routes/dataMaintenance'));
 app.use('/api/students', require('./src/routes/students'));
+app.use('/api/staff', require('./src/routes/staff'));
 app.use('/api/classes', require('./src/routes/classes'));
 app.use('/api/courses', require('./src/routes/courses'));
 app.use('/api/assignments', require('./src/routes/assignments'));

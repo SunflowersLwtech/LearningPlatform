@@ -23,20 +23,110 @@ const getCurrentAcademicYear = () => {
 
 exports.createAssignment = async (req, res) => {
   try {
+    const {
+      title,
+      description,
+      course,
+      type,
+      startDate,
+      dueDate,
+      totalPoints,
+      attempts,
+      lateSubmission,
+      isPublished,
+      assignedTo,
+      questions,
+      instructions
+    } = req.body;
+
+    // 验证日期逻辑
+    const start = new Date(startDate);
+    const due = new Date(dueDate);
+    const now = new Date();
+
+    if (due <= start) {
+      return res.status(400).json({
+        success: false,
+        message: '截止日期必须晚于开始日期'
+      });
+    }
+
+    // 允许开始时间早于当前时间，但截止时间不能早于当前时间
+    if (due < now && isPublished) {
+      return res.status(400).json({
+        success: false,
+        message: '发布的作业截止时间不能早于当前时间'
+      });
+    }
+
+    // 验证总分
+    if (totalPoints && totalPoints <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: '作业总分必须大于0'
+      });
+    }
+
+    // 验证尝试次数
+    if (attempts && (attempts < 1 || attempts > 10)) {
+      return res.status(400).json({
+        success: false,
+        message: '允许尝试次数必须在1-10之间'
+      });
+    }
+
     const assignment = new Assignment({
-      ...req.body,
+      title,
+      description,
+      course,
+      type,
+      startDate: start,
+      dueDate: due,
+      totalPoints: totalPoints || 0,
+      attempts: attempts || 1,
+      lateSubmission: {
+        allowed: lateSubmission?.allowed || false,
+        penalty: lateSubmission?.penalty || 0
+      },
+      isPublished: isPublished || false,
+      assignedTo: assignedTo || [],
+      questions: questions || [],
+      instructions: instructions || '',
       teacher: req.user.id
     });
-    
-    
+
     await assignment.save();
-    
+
+    // 填充相关信息用于返回
+    await assignment.populate('course', 'name subject');
+    await assignment.populate('teacher', 'name');
+
     res.status(201).json({
       success: true,
       message: '作业创建成功',
       data: assignment
     });
   } catch (error) {
+    console.error('创建作业失败:', error);
+
+    // 处理MongoDB验证错误
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: '数据验证失败',
+        errors: messages
+      });
+    }
+
+    // 处理重复键错误
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: '作业标题已存在'
+      });
+    }
+
     res.status(400).json({
       success: false,
       message: '创建作业失败',

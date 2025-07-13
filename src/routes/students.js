@@ -6,19 +6,23 @@ const {
   getStudentById,
   updateStudent,
   updateEnrollmentStatus,
-  deleteStudent
+  deleteStudent,
+  getCurrentStudent
 } = require('../controllers/studentController');
 
 const router = express.Router();
 
 router.use(authenticate);
 
+// 学生获取自己的信息
+router.get('/me', authorize('student'), getCurrentStudent);
+
 router.route('/')
   .get(authorize('admin', 'principal', 'director', 'head_teacher', 'teacher'), getAllStudents)
   .post(authorize('admin', 'principal', 'director'), checkPermission('canManageStudents'), createStudent);
 
 router.route('/:id')
-  .get(authorize('admin', 'principal', 'director', 'head_teacher', 'teacher', 'student'), getStudentById)
+  .get(authorize('admin', 'principal', 'director', 'head_teacher', 'teacher'), getStudentById)
   .put(authorize('admin', 'principal', 'director'), checkPermission('canManageStudents'), updateStudent)
   .delete(authorize('admin', 'principal'), checkPermission('canManageStudents'), deleteStudent);
 

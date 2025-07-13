@@ -408,10 +408,10 @@ exports.getDiscussions = async (req, res) => {
 exports.participateInDiscussion = async (req, res) => {
   try {
     const { discussionId } = req.params;
-    const { content, attachments, replyTo } = req.body;
+    const { content, replyTo } = req.body;
     const userId = req.user.id;
     const userModel = req.user.role ? 'Staff' : 'Student';
-    
+
     const discussion = await Discussion.findById(discussionId);
     if (!discussion) {
       return res.status(404).json({
@@ -419,14 +419,24 @@ exports.participateInDiscussion = async (req, res) => {
         message: '讨论不存在'
       });
     }
-    
+
     if (discussion.isLocked) {
       return res.status(400).json({
         success: false,
         message: '讨论已锁定'
       });
     }
-    
+
+    // 处理文件上传
+    let attachments = [];
+    if (req.files && req.files.length > 0) {
+      attachments = req.files.map(file => ({
+        name: file.originalname,
+        url: `/uploads/general/${file.filename}`,
+        type: file.mimetype
+      }));
+    }
+
     if (replyTo) {
       const post = discussion.posts.id(replyTo);
       if (post) {
@@ -434,6 +444,7 @@ exports.participateInDiscussion = async (req, res) => {
           author: userId,
           authorModel: userModel,
           content,
+          attachments,
           date: new Date()
         });
       }
@@ -442,19 +453,20 @@ exports.participateInDiscussion = async (req, res) => {
         author: userId,
         authorModel: userModel,
         content,
-        attachments: attachments || []
+        attachments
       });
     }
-    
+
     discussion.lastActivity = new Date();
     await discussion.save();
-    
+
     res.json({
       success: true,
       message: '参与讨论成功',
       data: discussion
     });
   } catch (error) {
+    console.error('参与讨论失败:', error);
     res.status(400).json({
       success: false,
       message: '参与讨论失败',
