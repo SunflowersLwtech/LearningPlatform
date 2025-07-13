@@ -35,15 +35,14 @@ const API_BASE = '/api';
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => document.querySelectorAll(selector);
 
-// 安全HTML处理函数
-const sanitizeHtml = (text) => {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-};
-
-// 将函数暴露到全局作用域供其他模块使用
-window.sanitizeHtml = sanitizeHtml;
+// 安全HTML处理函数 - 检查是否已存在以避免重复声明
+if (!window.sanitizeHtml) {
+    window.sanitizeHtml = function(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
+}
 
 // 安全设置元素内容
 const safeSetContent = (element, content, isHtml = false) => {
@@ -133,7 +132,7 @@ function showAlert(message, type = 'info') {
     alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
     alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
     alertDiv.innerHTML = `
-        ${sanitizeHtml(message)}
+        ${window.sanitizeHtml(message)}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     
@@ -408,7 +407,7 @@ async function showDashboard() {
         setActiveNav('仪表板');
     } catch (error) {
         console.error('加载仪表板失败:', error);
-        safeSetContent('#dashboardContent', `<div class="alert alert-danger">加载仪表板失败: ${sanitizeHtml(error.message || '未知错误')}</div>`, true);
+        safeSetContent('#dashboardContent', `<div class="alert alert-danger">加载仪表板失败: ${window.sanitizeHtml(error.message || '未知错误')}</div>`, true);
     }
 }
 
