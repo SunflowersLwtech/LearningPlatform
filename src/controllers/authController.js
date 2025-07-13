@@ -240,12 +240,7 @@ exports.login = async (req, res) => {
       return sendErrorResponse(res, createError.unauthorized('账号不存在或密码错误'));
     }
     
-    let isPasswordValid = false;
-    if (userType === 'staff') {
-      isPasswordValid = await bcrypt.compare(password, user.password);
-    } else {
-      isPasswordValid = await bcrypt.compare(password, user.password);
-    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     
     if (!isPasswordValid) {
       return sendErrorResponse(res, createError.unauthorized('账号不存在或密码错误'));
@@ -430,11 +425,10 @@ exports.register = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('注册错误:', error);
     res.status(400).json({
       success: false,
       message: '注册失败',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : '服务器内部错误'
     });
   }
 };
@@ -513,14 +507,26 @@ exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     
-    if (req.userType !== 'staff') {
+    if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: '学生不能修改密码'
+        message: '请提供当前密码和新密码'
       });
     }
     
-    const user = await Staff.findById(req.user.id).select('+password');
+    let user;
+    if (req.userType === 'staff') {
+      user = await Staff.findById(req.user.id).select('+password');
+    } else {
+      user = await Student.findById(req.user.id).select('+password');
+    }
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
     
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
     if (!isCurrentPasswordValid) {

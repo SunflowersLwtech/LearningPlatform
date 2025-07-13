@@ -324,11 +324,12 @@ async function handleRegister(e) {
         showAlert(`${userType === 'staff' ? '教职工' : '学生'}注册成功！请登录`, 'success');
         
         // 清空表单
-        $('#registerForm').reset();
+        document.getElementById('registerForm').reset();
         toggleRegistrationFields();
     } catch (error) {
         console.error('注册失败:', error);
-        showAlert(error.response?.data?.message || '注册失败', 'danger');
+        const errorMessage = error.response?.data?.message || error.message || '注册失败';
+        showAlert(errorMessage, 'danger');
     }
 }
 

@@ -24,8 +24,10 @@ exports.validateLogin = [
   body('password')
     .notEmpty()
     .withMessage('密码不能为空')
-    .isLength({ min: 6 })
-    .withMessage('密码至少6位'),
+    .isLength({ min: 8 })
+    .withMessage('密码至少8位')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('密码必须包含大小写字母和数字'),
   body('userType')
     .isIn(['staff', 'student'])
     .withMessage('用户类型必须是staff或student')
@@ -72,8 +74,10 @@ exports.validateRegister = [
     .withMessage('邮箱格式不正确')
     .normalizeEmail(),
   body('password')
-    .isLength({ min: 6 })
-    .withMessage('密码至少6位'),
+    .isLength({ min: 8 })
+    .withMessage('密码至少8位')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('密码必须包含大小写字母和数字'),
   body('confirmPassword')
     .custom((value, { req }) => {
       if (value !== req.body.password) {
@@ -90,8 +94,8 @@ exports.validateRegister = [
     .trim(),
   body('role')
     .if(body('userType').equals('staff'))
-    .isIn(['principal', 'vice_principal', 'director', 'head_teacher', 'teacher', 'admin'])
-    .withMessage('角色不正确'),
+    .isIn(['head_teacher', 'teacher'])
+    .withMessage('只能注册为教师或班主任'),
   body('department')
     .if(body('userType').equals('staff'))
     .notEmpty()
