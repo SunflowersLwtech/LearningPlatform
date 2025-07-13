@@ -99,5 +99,6 @@ studentSchema.index({ studentId: 1 });
 studentSchema.index({ name: 1 });
 studentSchema.index({ class: 1 });
 studentSchema.index({ grade: 1 });
+studentSchema.index({ 'contactInfo.email': 1 });
 
 module.exports = mongoose.model('Student', studentSchema);

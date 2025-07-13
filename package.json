@@ -8,6 +8,8 @@
     "dev": "nodemon server.js",
     "seed": "node src/utils/seedData.js",
     "init-db": "node scripts/initDb.js",
+    "init-production": "node scripts/init-production-data.js",
+    "debug-student": "node debug-student-login.js",
     "test": "node scripts/test-local.js",
     "test:watch": "nodemon scripts/test-local.js",
     "test:full": "node run-tests-safely.js",
