@@ -42,6 +42,9 @@ const sanitizeHtml = (text) => {
     return div.innerHTML;
 };
 
+// 将函数暴露到全局作用域供其他模块使用
+window.sanitizeHtml = sanitizeHtml;
+
 // 安全设置元素内容
 const safeSetContent = (element, content, isHtml = false) => {
     if (typeof element === 'string') {

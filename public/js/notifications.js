@@ -1,4 +1,12 @@
-// 注意：sanitizeHtml函数在app.js中已定义，这里不需要重复声明
+// 安全HTML处理函数 - 如果app.js未加载则使用本地版本
+function sanitizeHtml(text) {
+    if (window.sanitizeHtml && typeof window.sanitizeHtml === 'function') {
+        return window.sanitizeHtml(text);
+    }
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 // 通知系统客户端
 class NotificationManager {
