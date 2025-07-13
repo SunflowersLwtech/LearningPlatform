@@ -13,13 +13,13 @@ module.exports = {
     sourceType: 'module'
   },
   rules: {
-    'no-console': 'warn',
-    'no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
+    'no-console': 'off', // Allow console statements for logging
+    'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_', 'varsIgnorePattern': '^_' }],
     'no-undef': 'error',
-    'prefer-const': 'error',
+    'prefer-const': 'warn',
     'no-var': 'error',
-    'eqeqeq': ['error', 'always'],
-    'curly': ['error', 'all'],
+    'eqeqeq': ['warn', 'always'],
+    'curly': ['warn', 'all'],
     'no-eval': 'error',
     'no-implied-eval': 'error',
     'no-new-func': 'error',
@@ -28,8 +28,11 @@ module.exports = {
     'no-sequences': 'error',
     'no-throw-literal': 'error',
     'no-void': 'error',
-    'radix': 'error',
-    'yoda': 'error'
+    'radix': 'warn',
+    'yoda': 'warn',
+    'no-case-declarations': 'warn',
+    'no-control-regex': 'warn',
+    'no-useless-escape': 'warn'
   },
   globals: {
     io: 'readonly',

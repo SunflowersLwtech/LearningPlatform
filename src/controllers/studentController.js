@@ -2,7 +2,7 @@ const Student = require('../models/Student');
 const Class = require('../models/Class');
 const Grade = require('../models/Grade');
 const bcrypt = require('bcryptjs');
-const mongoose = require('mongoose');
+// const mongoose = require('mongoose'); // Commented out - not currently used
 const { TransactionManager, RealtimeNotificationManager, dataSyncManager } = require('../utils/dataSynchronization');
 const { createError, sendSuccessResponse, sendErrorResponse } = require('../utils/errorHandler');
 
@@ -53,7 +53,7 @@ exports.createStudent = async (req, res) => {
     });
     
     // 执行事务
-    const results = await txManager.execute();
+    const _results = await txManager.execute(); // Prefixed with _ to indicate intentionally unused
     
     // 执行数据同步
     await dataSyncManager.executeSync('Student', 'create', savedStudent, {
@@ -571,7 +571,7 @@ exports.getClassGPARanking = async (req, res) => {
           grade: classData.grade
         },
         period: { academicYear, semester },
-        ranking: gpaRanking.slice(0, parseInt(limit)),
+        ranking: gpaRanking.slice(0, parseInt(limit, 10)),
         stats: {
           totalStudents: gpaRanking.length,
           averageGPA: gpaRanking.length > 0 

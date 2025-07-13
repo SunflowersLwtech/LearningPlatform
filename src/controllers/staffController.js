@@ -47,13 +47,13 @@ exports.getAllStaff = async (req, res) => {
       filter.$or = searchConditions;
     }
     
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
     
     const staff = await Staff.find(filter)
       .select('-password')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .populate('permissions');
     
     const total = await Staff.countDocuments(filter);
@@ -62,8 +62,8 @@ exports.getAllStaff = async (req, res) => {
       success: true,
       data: staff,
       pagination: {
-        current: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
+        current: parseInt(page, 10),
+        pages: Math.ceil(total / parseInt(limit, 10)),
         total
       }
     });

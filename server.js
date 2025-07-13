@@ -133,9 +133,9 @@ server.listen(PORT, HOST, () => {
   const localIPs = [];
   
   Object.keys(networkInterfaces).forEach(interfaceName => {
-    networkInterfaces[interfaceName].forEach(interface => {
-      if (interface.family === 'IPv4' && !interface.internal) {
-        localIPs.push(interface.address);
+    networkInterfaces[interfaceName].forEach(networkInterface => {
+      if (networkInterface.family === 'IPv4' && !networkInterface.internal) {
+        localIPs.push(networkInterface.address);
       }
     });
   });

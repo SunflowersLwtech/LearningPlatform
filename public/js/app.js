@@ -2516,7 +2516,7 @@ async function submitAddClass() {
             name: data.name.trim(),
             grade: data.grade,
             academicYear: data.academicYear,
-            capacity: parseInt(data.capacity),
+            capacity: parseInt(data.capacity, 10),
             classType: data.classType || 'administrative',
             isActive: data.isActive === 'on' || true
         };
@@ -2531,7 +2531,7 @@ async function submitAddClass() {
             classData.classroom = {
                 building: data.building || '',
                 room: data.room || '',
-                floor: parseInt(data.floor) || 1
+                floor: parseInt(data.floor, 10) || 1
             };
         }
         
@@ -2753,7 +2753,7 @@ async function submitEditStudent(studentId) {
             familyKeys.forEach(key => {
                 const match = key.match(/familyMembers\[(\d+)\]/);
                 if (match) {
-                    memberIndices.add(parseInt(match[1]));
+                    memberIndices.add(parseInt(match[1], 10));
                 }
             });
             
@@ -3405,7 +3405,7 @@ async function submitScheduleSlot(classId) {
         const data = Object.fromEntries(formData);
         
         // 确定课时节次
-        const startHour = parseInt(data.startTime.split(':')[0]);
+        const startHour = parseInt(data.startTime.split(':')[0], 10);
         let period;
         if (startHour >= 8 && startHour < 12) {
             period = Math.floor((startHour - 8) * 2) + 1;
@@ -3414,7 +3414,7 @@ async function submitScheduleSlot(classId) {
         }
         
         const scheduleData = {
-            dayOfWeek: parseInt(data.dayOfWeek),
+            dayOfWeek: parseInt(data.dayOfWeek, 10),
             period: period,
             startTime: data.startTime,
             endTime: data.endTime,
@@ -4299,7 +4299,7 @@ async function submitEditClass(classId) {
             data.classroom = {
                 building: data.building,
                 room: data.room,
-                floor: parseInt(data.floor) || 1
+                floor: parseInt(data.floor, 10) || 1
             };
             delete data.building;
             delete data.room;
@@ -4357,7 +4357,7 @@ async function submitEditCourse(courseId) {
         
         // 转换数值类型
         if (data.credits) {data.credits = parseFloat(data.credits);}
-        if (data.totalHours) {data.totalHours = parseInt(data.totalHours);}
+        if (data.totalHours) {data.totalHours = parseInt(data.totalHours, 10);}
         data.isActive = data.isActive === 'true';
         
         await api.put(`/courses/${courseId}`, data);
@@ -4384,8 +4384,8 @@ async function submitEditAssignment(assignmentId) {
         delete data.lateSubmissionAllowed;
         
         // 转换数值和布尔类型
-        data.totalPoints = parseInt(data.totalPoints);
-        data.attempts = parseInt(data.attempts);
+        data.totalPoints = parseInt(data.totalPoints, 10);
+        data.attempts = parseInt(data.attempts, 10);
         data.isPublished = data.isPublished === 'true';
         
         await api.put(`/assignments/${assignmentId}`, data);

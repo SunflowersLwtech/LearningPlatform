@@ -279,8 +279,8 @@ exports.downloadResource = async (req, res) => {
       const requestedPath = path.resolve(uploadsDir, resource.fileInfo.filePath);
       
       // 强化路径遍历攻击防护
-      const normalizedUploadsDir = path.normalize(uploadsDir + path.sep);
-      const normalizedRequestedPath = path.normalize(requestedPath + path.sep);
+      const normalizedUploadsDir = path.normalize(uploadsDir);
+      const normalizedRequestedPath = path.normalize(requestedPath);
       
       if (!normalizedRequestedPath.startsWith(normalizedUploadsDir)) {
         console.warn(`路径遍历攻击尝试: ${resource.fileInfo.filePath} -> ${requestedPath}`);
@@ -299,7 +299,7 @@ exports.downloadResource = async (req, res) => {
         });
       }
       
-      const filePath = requestedPath;
+      const filePath = normalizedRequestedPath;
       
       if (fs.existsSync(filePath)) {
         // 增加下载计数
