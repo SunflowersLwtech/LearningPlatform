@@ -28,7 +28,7 @@ connectDB();
 // 配置CORS - 更安全的设置
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-        ? process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000']
+        ? process.env.ALLOWED_ORIGINS?.split(',') || ['https://learning-platform-lqy1.onrender.com']
         : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://0.0.0.0:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -90,6 +90,16 @@ app.use('/api/learning', require('./src/routes/learning'));
 app.use('/api/analytics', require('./src/routes/analytics'));
 
 app.use(handleUploadError);
+
+// 添加健康检查端点
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    uptime: process.uptime()
+  });
+});
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'index.html'));

@@ -289,10 +289,11 @@ exports.login = async (req, res) => {
     
     sendSuccessResponse(res, responseData, '登录成功');
   } catch (error) {
+    console.error('登录错误详情:', error);
     res.status(500).json({
       success: false,
       message: '登录失败',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : '服务器内部错误'
     });
   }
 };
@@ -425,6 +426,7 @@ exports.register = async (req, res) => {
       });
     }
   } catch (error) {
+    console.error('注册错误详情:', error);
     res.status(400).json({
       success: false,
       message: '注册失败',
