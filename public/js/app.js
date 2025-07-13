@@ -1,3 +1,24 @@
+// 立即定义全局函数，确保HTML中的onclick可以调用
+window.showLoginModal = function() {
+    console.log('showLoginModal 被调用');
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal) {
+        new bootstrap.Modal(loginModal).show();
+    } else {
+        console.error('未找到登录模态框元素');
+    }
+};
+
+window.showRegisterModal = function() {
+    console.log('showRegisterModal 被调用');
+    const registerModal = document.getElementById('registerModal');
+    if (registerModal) {
+        new bootstrap.Modal(registerModal).show();
+    } else {
+        console.error('未找到注册模态框元素');
+    }
+};
+
 // 全局变量
 let currentUser = null;
 let authToken = null;
@@ -345,15 +366,7 @@ function logout() {
     showAlert('已退出登录', 'info');
 }
 
-// 显示登录模态框
-window.showLoginModal = function() {
-    new bootstrap.Modal($('#loginModal')).show();
-}
-
-// 显示注册模态框
-window.showRegisterModal = function() {
-    new bootstrap.Modal($('#registerModal')).show();
-}
+// 模态框函数已在文件开头定义
 
 // 显示仪表板
 async function showDashboard() {
