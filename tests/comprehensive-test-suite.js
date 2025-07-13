@@ -22,6 +22,16 @@ class ComprehensiveTestSuite {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // 智能延迟函数，避免频率限制
+  async smartDelay() {
+    // 基础延迟 50ms
+    await this.sleep(50);
+    // 每10个请求额外延迟
+    if (this.results.total % 10 === 0) {
+      await this.sleep(200);
+    }
+  }
+
   log(message, type = 'info') {
     const timestamp = new Date().toISOString();
     const prefix = {
@@ -73,11 +83,15 @@ class ComprehensiveTestSuite {
       await testFunction();
       this.results.passed++;
       this.log(`PASSED: ${testName}`, 'success');
+      // 添加智能延迟避免频率限制
+      await this.smartDelay();
       return true;
     } catch (error) {
       this.results.failed++;
       this.results.errors.push({ test: testName, error: error.message });
       this.log(`FAILED: ${testName} - ${error.message}`, 'error');
+      // 失败后也需要延迟
+      await this.smartDelay();
       return false;
     }
   }

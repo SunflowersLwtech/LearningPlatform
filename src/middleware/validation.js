@@ -92,6 +92,11 @@ exports.validateRegister = [
     .if(body('userType').equals('staff'))
     .isIn(['principal', 'vice_principal', 'director', 'head_teacher', 'teacher', 'admin'])
     .withMessage('角色不正确'),
+  body('department')
+    .if(body('userType').equals('staff'))
+    .notEmpty()
+    .withMessage('部门不能为空')
+    .trim(),
 
   // 条件验证：如果是学生，验证学生字段
   body('studentId')

@@ -21,7 +21,11 @@ router.use(authenticate);
 router.get('/dashboard', authorize('student'), getStudentDashboard);
 
 router.get('/assignments', authorize('student'), getAssignments);
-router.post('/assignments/:assignmentId/submit', authorize('student'), submitAssignment);
+router.post('/assignments/:assignmentId/submit', 
+  authorize('student'), 
+  uploadMiddleware.multiple('attachments', 5), 
+  submitAssignment
+);
 
 router.get('/resources', getResources);
 router.post('/resources', 

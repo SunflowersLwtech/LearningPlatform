@@ -3,6 +3,11 @@ const MAX_MAP_SIZE = 10000; // 限制Map最大大小，防止内存泄漏
 let cleanupInterval;
 
 const rateLimiter = (windowMs = 15 * 60 * 1000, max = 100) => {
+  // 测试环境下放宽限制
+  if (process.env.NODE_ENV === 'test' || process.env.TESTING === 'true') {
+    windowMs = 1 * 60 * 1000; // 1分钟窗口
+    max = 1000; // 提高到1000次请求
+  }
   return (req, res, next) => {
     // 获取客户端标识符（优先使用真实IP）
     const key = req.headers['x-forwarded-for']?.split(',')[0] || 

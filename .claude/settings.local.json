@@ -22,7 +22,10 @@
       "Bash(rm:*)",
       "Bash(mkdir:*)",
       "Bash(pkill:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(TESTING=true node tests/comprehensive-test-suite.js)",
+      "Bash(npm run test:*)",
+      "Bash(TESTING=true node test-bug-fixes.js)"
     ],
     "deny": []
   }

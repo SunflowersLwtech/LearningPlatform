@@ -155,6 +155,9 @@ function bindEvents() {
     
     // 注册表单
     $('#registerForm')?.addEventListener('submit', handleRegister);
+    
+    // 注册表单中添加全局函数
+    window.toggleRegistrationFields = toggleRegistrationFields;
 }
 
 // 处理登录
@@ -189,26 +192,102 @@ async function handleLogin(e) {
 }
 
 // 处理注册
+// 注册表单字段切换
+function toggleRegistrationFields() {
+    const userType = $('#regUserType').value;
+    const staffFields = $$('.staff-fields');
+    const studentFields = $$('.student-fields');
+    
+    if (userType === 'staff') {
+        staffFields.forEach(field => {
+            field.style.display = 'block';
+            const inputs = field.querySelectorAll('input, select');
+            inputs.forEach(input => input.required = true);
+        });
+        studentFields.forEach(field => {
+            field.style.display = 'none';
+            const inputs = field.querySelectorAll('input, select');
+            inputs.forEach(input => input.required = false);
+        });
+    } else if (userType === 'student') {
+        staffFields.forEach(field => {
+            field.style.display = 'none';
+            const inputs = field.querySelectorAll('input, select');
+            inputs.forEach(input => input.required = false);
+        });
+        studentFields.forEach(field => {
+            field.style.display = 'block';
+            const inputs = field.querySelectorAll('input, select');
+            inputs.forEach(input => input.required = true);
+        });
+    } else {
+        staffFields.forEach(field => field.style.display = 'none');
+        studentFields.forEach(field => field.style.display = 'none');
+    }
+}
+
 async function handleRegister(e) {
     e.preventDefault();
     
-    const formData = {
+    const userType = $('#regUserType').value;
+    if (!userType) {
+        showAlert('请选择用户类型', 'warning');
+        return;
+    }
+    
+    // 验证密码匹配
+    const password = $('#regPassword').value;
+    const confirmPassword = $('#regConfirmPassword').value;
+    
+    if (password !== confirmPassword) {
+        showAlert('密码和确认密码不匹配', 'warning');
+        return;
+    }
+
+    const baseData = {
         name: $('#regName').value,
-        staffId: $('#regStaffId').value,
         email: $('#regEmail').value,
-        password: $('#regPassword').value,
-        role: $('#regRole').value,
-        department: $('#regDepartment').value,
-        userType: 'staff'
+        password: password,
+        confirmPassword: confirmPassword,
+        userType: userType
     };
+    
+    let formData;
+    if (userType === 'staff') {
+        // 限制教职工只能注册为教师和班主任
+        const role = $('#regRole').value;
+        if (!['teacher', 'head_teacher'].includes(role)) {
+            showAlert('教职工只能注册为教师或班主任', 'warning');
+            return;
+        }
+        
+        formData = {
+            ...baseData,
+            staffId: $('#regStaffId').value,
+            role: role,
+            department: $('#regDepartment').value
+        };
+    } else {
+        formData = {
+            ...baseData,
+            studentId: $('#regStudentId').value,
+            grade: $('#regGrade').value,
+            gender: $('#regGender').value
+        };
+    }
     
     try {
         const result = await api.post('/auth/register', formData);
         
         bootstrap.Modal.getInstance($('#registerModal')).hide();
-        showAlert('注册成功！请登录', 'success');
+        showAlert(`${userType === 'staff' ? '教职工' : '学生'}注册成功！请登录`, 'success');
+        
+        // 清空表单
+        $('#registerForm').reset();
+        toggleRegistrationFields();
     } catch (error) {
         console.error('注册失败:', error);
+        showAlert(error.response?.data?.message || '注册失败', 'danger');
     }
 }
 

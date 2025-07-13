@@ -17,7 +17,7 @@ const router = express.Router();
 router.use(authenticate);
 
 router.route('/')
-  .get(getAllAssignments)
+  .get(authorize('admin', 'principal', 'director', 'head_teacher', 'teacher', 'student'), getAllAssignments)
   .post(
     authorize('admin', 'principal', 'director', 'head_teacher', 'teacher'),
     validateAssignmentCreate,

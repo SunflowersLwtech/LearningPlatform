@@ -176,18 +176,30 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">教职工注册</h5>
+                    <h5 class="modal-title">用户注册</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="registerForm">
                         <div class="mb-3">
+                            <label for="regUserType" class="form-label">用户类型</label>
+                            <select class="form-select" id="regUserType" required onchange="toggleRegistrationFields()">
+                                <option value="">请选择用户类型</option>
+                                <option value="staff">教职工</option>
+                                <option value="student">学生</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <label for="regName" class="form-label">姓名</label>
                             <input type="text" class="form-control" id="regName" required>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 staff-fields">
                             <label for="regStaffId" class="form-label">工号</label>
-                            <input type="text" class="form-control" id="regStaffId" required>
+                            <input type="text" class="form-control" id="regStaffId">
+                        </div>
+                        <div class="mb-3 student-fields" style="display: none;">
+                            <label for="regStudentId" class="form-label">学号</label>
+                            <input type="text" class="form-control" id="regStudentId">
                         </div>
                         <div class="mb-3">
                             <label for="regEmail" class="form-label">邮箱</label>
@@ -198,17 +210,38 @@
                             <input type="password" class="form-control" id="regPassword" required>
                         </div>
                         <div class="mb-3">
+                            <label for="regConfirmPassword" class="form-label">确认密码</label>
+                            <input type="password" class="form-control" id="regConfirmPassword" required>
+                        </div>
+                        <div class="mb-3 staff-fields">
                             <label for="regRole" class="form-label">角色</label>
-                            <select class="form-select" id="regRole" required>
+                            <select class="form-select" id="regRole">
                                 <option value="teacher">教师</option>
                                 <option value="head_teacher">班主任</option>
-                                <option value="director">主任</option>
-                                <option value="admin">管理员</option>
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 staff-fields">
                             <label for="regDepartment" class="form-label">部门</label>
-                            <input type="text" class="form-control" id="regDepartment" required>
+                            <input type="text" class="form-control" id="regDepartment">
+                        </div>
+                        <div class="mb-3 student-fields" style="display: none;">
+                            <label for="regGrade" class="form-label">年级</label>
+                            <select class="form-select" id="regGrade">
+                                <option value="高一">高一</option>
+                                <option value="高二">高二</option>
+                                <option value="高三">高三</option>
+                                <option value="大一">大一</option>
+                                <option value="大二">大二</option>
+                                <option value="大三">大三</option>
+                                <option value="大四">大四</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 student-fields" style="display: none;">
+                            <label for="regGender" class="form-label">性别</label>
+                            <select class="form-select" id="regGender">
+                                <option value="male">男</option>
+                                <option value="female">女</option>
+                            </select>
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">注册</button>

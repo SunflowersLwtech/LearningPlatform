@@ -10,6 +10,8 @@
     "init-db": "node scripts/initDb.js",
     "test": "node scripts/test-local.js",
     "test:watch": "nodemon scripts/test-local.js",
+    "test:full": "node run-tests-safely.js",
+    "test:reset": "node reset-rate-limit.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "setup": "./start-dev.sh"

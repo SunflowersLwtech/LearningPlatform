@@ -110,14 +110,48 @@ exports.submitAssignment = async (req, res) => {
   try {
     const { assignmentId } = req.params;
     const studentId = req.user.id;
-    const { answers, textSubmission, attachments } = req.body;
+    const { answers, textSubmission } = req.body;
     
-    const assignment = await Assignment.findById(assignmentId).session(session);
+    // 获取学生信息用于权限验证
+    const student = await Student.findOne({ _id: studentId }).session(session);
+    if (!student) {
+      await session.abortTransaction();
+      return res.status(403).json({
+        success: false,
+        message: '学生信息不存在'
+      });
+    }
+    
+    const assignment = await Assignment.findById(assignmentId)
+      .populate('assignedTo.classes assignedTo.students')
+      .session(session);
     if (!assignment) {
       await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: '作业不存在'
+      });
+    }
+    
+    // 验证学生是否被分配了该作业
+    const isAssigned = assignment.assignedTo.some(assigned => {
+      // 检查是否直接分配给学生
+      if (assigned.students && assigned.students.some(s => s._id.toString() === studentId)) {
+        return true;
+      }
+      // 检查是否通过班级分配
+      if (assigned.classes && assigned.classes.some(cls => 
+        cls._id.toString() === student.class?.toString())) {
+        return true;
+      }
+      return false;
+    });
+    
+    if (!isAssigned) {
+      await session.abortTransaction();
+      return res.status(403).json({
+        success: false,
+        message: '您未被分配此作业'
       });
     }
     
@@ -147,6 +181,29 @@ exports.submitAssignment = async (req, res) => {
     const isLate = new Date() > assignment.dueDate;
     const submittedAt = new Date();
     
+    // 验证提交内容
+    if (!answers && !textSubmission && (!req.files || req.files.length === 0)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: '请提交作业内容'
+      });
+    }
+    
+    // 处理上传的文件
+    const attachments = [];
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        attachments.push({
+          originalName: file.originalname,
+          filename: file.filename,
+          path: file.path,
+          size: file.size,
+          mimeType: file.mimetype
+        });
+      });
+    }
+
     if (submission) {
       const updatedSubmission = await Submission.findOneAndUpdate(
         { 
@@ -157,8 +214,8 @@ exports.submitAssignment = async (req, res) => {
         {
           $inc: { attemptNumber: 1 },
           $set: {
-            answers,
-            textSubmission,
+            answers: answers || null,
+            textSubmission: textSubmission || null,
             attachments,
             submittedAt,
             isLate,
@@ -185,8 +242,8 @@ exports.submitAssignment = async (req, res) => {
       submission = new Submission({
         assignment: assignmentId,
         student: studentId,
-        answers,
-        textSubmission,
+        answers: answers || null,
+        textSubmission: textSubmission || null,
         attachments,
         isLate,
         submittedAt,
